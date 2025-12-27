@@ -1,6 +1,30 @@
-# Rummikub Online
+# Romanian Rummy Online
 
-Online multiplayer Rummikub (Romanian "remi pe tabl" variant) where each player melds on their own board. Supports 2-4 players with full manipulation rules and jokers.
+Online multiplayer Romanian Rummy ("remi pe tablă" variant). 2-4 players with private racks, draw-and-drop gameplay, and jokers.
+
+## Game Rules
+
+### How to Play
+1. Each player starts with **14 private tiles** (no one sees your tiles)
+2. On your turn: **Draw → Rearrange → Drop**
+3. **Win** when all 14 tiles in your rack form valid melds
+
+### Turn Structure
+1. **Draw** (mandatory): Take one tile from:
+   - The pool (face down), OR
+   - The last dropped tile from the player on your left (face up)
+2. **Rearrange** (optional): Organize tiles in your rack into melds
+3. **Drop** (mandatory): Discard one tile face up
+4. **Announce** (optional): If all remaining tiles form valid melds, declare win!
+
+### Valid Melds
+- **Run**: 3+ consecutive numbers of the same color (e.g., 4-5-6 red)
+- **Group**: 3-4 tiles of the same number in different colors (e.g., 7-7-7)
+- **Joker**: Can substitute any tile in a meld
+
+### Game End
+- **Win**: First player to form all tiles into valid melds
+- **Draw**: Pool runs out before anyone wins
 
 ## Tech Stack
 
@@ -11,54 +35,44 @@ Online multiplayer Rummikub (Romanian "remi pe tabl" variant) where each player
 
 ## Project Status
 
-### Phase 1: Foundation  COMPLETED
+### Phase 1: Foundation ✅ COMPLETED
 
--  Vite + React + TypeScript project initialized
--  Express server with Socket.IO
--  Redis connection setup
--  Socket room management
--  Create/join game flow with 4-character codes
--  Basic lobby UI
--  Game state storage in Redis
+- ✅ Vite + React + TypeScript project initialized
+- ✅ Express server with Socket.IO
+- ✅ Redis connection setup
+- ✅ Socket room management
+- ✅ Create/join game flow with 4-character codes
+- ✅ Basic lobby UI
+- ✅ Game state storage in Redis
 
-### Phase 2: Game Logic (Next)
+### Phase 2: Game Logic ✅ COMPLETED
 
-- [ ] Tile pool generator (106 tiles)
-- [ ] Meld validation functions
-- [ ] Joker handling
-- [ ] Initial meld check (30-point threshold)
-- [ ] Turn logic
-- [ ] Win condition
+- ✅ Tile pool generator (106 tiles: 2 sets of 1-13 in 4 colors + 2 jokers)
+- ✅ Shuffle and deal 14 tiles per player
+- ✅ Meld validation (runs, groups, joker handling)
+- ✅ Turn logic (draw from pool or neighbor, drop tile)
+- ✅ Win condition (all tiles form valid melds)
+- ✅ Draw condition (pool empty)
+
+### Phase 3: UI Core (Next)
+
+- [ ] Game layout with rack display
+- [ ] Tile components
+- [ ] Drag-and-drop for rearranging
+- [ ] Draw/drop interactions
+- [ ] Announce win button
 
 ## Prerequisites
 
 - Node.js (v18 or higher)
-- Redis server running locally or accessible remotely
+- Redis server (via Docker recommended)
 
 ## Setup
 
-### 1. Install Redis
+### 1. Install Redis (Docker)
 
-**Windows:**
 ```bash
-# Using WSL2
-wsl --install
-# Then install Redis in WSL
-sudo apt-get update
-sudo apt-get install redis-server
-sudo service redis-server start
-```
-
-**macOS:**
-```bash
-brew install redis
-brew services start redis
-```
-
-**Linux:**
-```bash
-sudo apt-get install redis-server
-sudo systemctl start redis
+docker run -d --name rummikub-redis -p 6379:6379 redis:latest
 ```
 
 ### 2. Install Dependencies
@@ -73,47 +87,43 @@ cd ../client
 npm install
 ```
 
-### 3. Configure Environment
+### 3. Configure Environment (Optional)
+
+Default values work for local development. To customize:
 
 ```bash
 # Server
 cd server
 cp .env.example .env
-# Edit .env if needed (default values work for local development)
 
 # Client
 cd ../client
 cp .env.example .env
-# Edit .env if needed (default values work for local development)
 ```
 
 ## Running the Application
 
 ### Development Mode
 
-Open two terminal windows:
-
 **Terminal 1 - Server:**
 ```bash
 cd server
 npm run dev
 ```
-
-Server will start on `http://localhost:3000`
+Server runs on `http://localhost:3000`
 
 **Terminal 2 - Client:**
 ```bash
 cd client
 npm run dev
 ```
+Client runs on `http://localhost:5173`
 
-Client will start on `http://localhost:5173`
-
-### Testing the Multiplayer
+### Testing Multiplayer
 
 1. Open `http://localhost:5173` in your browser
 2. Enter your name and click "Create New Game"
-3. You'll receive a 4-character game code
+3. Note the 4-character game code
 4. Open another browser window (or incognito)
 5. Enter a different name and the game code, then click "Join Game"
 6. Once 2-4 players have joined, the host can start the game
@@ -121,61 +131,78 @@ Client will start on `http://localhost:5173`
 ## Project Structure
 
 ```
-/client                  # React frontend
+/client
   /src
-    /components          # React components
+    /components
       Lobby.tsx         # Game creation/joining
       WaitingRoom.tsx   # Pre-game lobby
-      Game.tsx          # Main game UI (Phase 3)
+      Game.tsx          # Main game UI
     /hooks
-      useSocket.ts      # Socket.IO hook
-    /lib               # Utility functions
-    /types             # TypeScript types
-    App.tsx
-    main.tsx
+      useSocket.ts      # Socket.IO connection
+    /lib
+      validation.ts     # Meld validation functions
+    /types
+      index.ts          # TypeScript types
 
-/server                 # Express backend
+/server
   /src
     /game
-      state.ts         # Game state management
-      validation.ts    # Server-side validation (Phase 2)
-      tiles.ts         # Tile generation (Phase 2)
+      state.ts          # Game state management (Redis)
+      validation.ts     # Server-side validation
+      tiles.ts          # Tile generation, shuffle, deal
     /socket
-      handlers.ts      # Socket event handlers
+      handlers.ts       # Socket event handlers
     /redis
-      client.ts        # Redis connection
-    index.ts          # Server entry point
+      client.ts         # Redis connection
+    index.ts            # Server entry point
   /types
-    index.ts          # Shared TypeScript types
+    index.ts            # TypeScript types
 ```
 
 ## Socket Events
 
-### Client � Server
+### Client → Server
 
-- `create-game` - Creates a new game, returns code
-- `join-game` { code, playerName } - Join existing game
-- `start-game` { code } - Host starts the game
-- `leave-game` { code } - Leave current game
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `create-game` | - | Creates a new game |
+| `join-game` | `{ code, playerName }` | Join existing game |
+| `start-game` | `{ code }` | Host starts the game |
+| `draw-from-pool` | `{ code }` | Draw tile from pool |
+| `draw-from-neighbor` | `{ code }` | Take left neighbor's dropped tile |
+| `drop-tile` | `{ code, tileId }` | Drop a tile (ends turn) |
+| `announce-win` | `{ code, melds }` | Declare win with meld arrangement |
+| `leave-game` | `{ code }` | Leave current game |
 
-### Server � Client
+### Server → Client
 
-- `game-created` { code } - Game created successfully
-- `player-joined` { player, gameState } - Player joined
-- `game-started` { gameState } - Game has started
-- `game-state-update` { gameState } - State changed
-- `error` { message } - Error occurred
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `game-created` | `{ code }` | Game created successfully |
+| `player-joined` | `{ player, gameState }` | Player joined |
+| `game-started` | `{ gameState }` | Game has started |
+| `turn-changed` | `{ currentPlayerIndex }` | Turn passed |
+| `tile-drawn` | `{ tile, gameState }` | You drew a tile |
+| `player-drew-tile` | `{ playerIndex, poolSize }` | Other player drew |
+| `tile-dropped` | `{ playerIndex, tile }` | Tile was dropped |
+| `game-over` | `{ winnerId, gameState, winningMelds?, isDraw? }` | Game ended |
+| `error` | `{ message }` | Error occurred |
 
-## Next Steps (Phase 2)
+## Redis Commands (Debugging)
 
-See [PLAN.md](PLAN.md) for detailed implementation plan.
+```bash
+# Connect to Redis CLI
+docker exec -it rummikub-redis redis-cli
 
-The next phase involves implementing:
-- Tile pool generation and shuffling
-- Meld validation (runs and groups)
-- Initial meld 30-point threshold
-- Turn management and drawing tiles
-- Win condition detection
+# View all games
+KEYS *
+
+# View specific game
+GET game:ABCD
+
+# Clear all data
+FLUSHALL
+```
 
 ## License
 
