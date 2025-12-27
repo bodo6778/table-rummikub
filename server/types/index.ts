@@ -1,7 +1,7 @@
 export type Tile = {
   id: string;
   color: "red" | "blue" | "yellow" | "black";
-  number: number; // 1-13
+  number: number; // 1-13, 0 for jokers
   isJoker: boolean;
 };
 
@@ -14,9 +14,8 @@ export type Player = {
   id: string;
   name: string;
   socketId: string;
-  rack: Tile[]; // tiles in hand
-  board: Meld[]; // player's meld area
-  hasInitialMeld: boolean; // passed 30-point threshold
+  rack: Tile[]; // 14 tiles (15 during turn after drawing)
+  lastDroppedTile: Tile | null; // face up, player on right can take it
 };
 
 export type Game = {
@@ -25,6 +24,7 @@ export type Game = {
   players: Player[];
   pool: Tile[]; // draw pile
   currentPlayerIndex: number;
-  status: "waiting" | "playing" | "finished";
+  status: "waiting" | "playing" | "finished" | "draw"; // draw = pool empty, no winner
   winnerId: string | null;
+  hasDrawnThisTurn: boolean; // track if current player has drawn
 };

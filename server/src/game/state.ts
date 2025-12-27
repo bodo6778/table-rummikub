@@ -41,6 +41,7 @@ export async function createGame(): Promise<Game> {
     currentPlayerIndex: 0,
     status: "waiting",
     winnerId: null,
+    hasDrawnThisTurn: false,
   };
 
   await saveGame(game);
