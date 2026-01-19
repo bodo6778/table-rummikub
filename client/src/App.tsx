@@ -40,7 +40,7 @@ function App() {
   }
 
   if (appState === "playing" && currentGame && currentPlayer) {
-    return <GameComponent game={currentGame} currentPlayer={currentPlayer} />;
+    return <GameComponent game={currentGame} currentPlayer={currentPlayer} socket={socket} />;
   }
 
   return null;

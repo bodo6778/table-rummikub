@@ -140,18 +140,18 @@ type Game = {
 - [x] Win condition: all tiles form valid melds
 - [x] Draw condition: pool empty
 
-### Phase 3: UI Core
+### Phase 3: UI Core ✅ COMPLETED
 
-- [ ] Game layout: rack at bottom, opponents info on top
-- [ ] Tile component (colors, numbers, joker display)
-- [ ] Rack component (private tile arrangement)
-- [ ] Meld component (group of tiles for organizing)
-- [ ] Drag-and-drop within rack to rearrange and form melds
-- [ ] Draw options (pool button, neighbor's tile button)
-- [ ] Drop tile interaction
-- [ ] Left neighbor's dropped tile display
-- [ ] Turn indicator
-- [ ] Announce win button (enabled when all tiles form valid melds)
+- [x] Game layout: rack at bottom, opponents info on top
+- [x] Tile component (colors, numbers, joker display)
+- [x] Rack component (private tile arrangement)
+- [x] Meld component (group of tiles for organizing)
+- [x] Drag-and-drop within rack to rearrange and form melds
+- [x] Draw options (pool button, neighbor's tile button)
+- [x] Drop tile interaction
+- [x] Left neighbor's dropped tile display
+- [x] Turn indicator
+- [x] Announce win button (enabled when all tiles form valid melds)
 
 ### Phase 4: Multiplayer Sync
 

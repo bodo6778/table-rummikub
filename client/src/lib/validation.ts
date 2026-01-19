@@ -1,4 +1,4 @@
-import { Tile, Meld } from "../types";
+import type { Tile, Meld } from "../types";
 
 /**
  * Validates if tiles form a valid run
