@@ -160,15 +160,18 @@ type Game = {
 - [x] Handle edge cases (player leaves mid-game, etc.)
 - [x] Game over broadcast and UI
 
-### Phase 5: Polish
+### Phase 5: Polish logic ✅ COMPLETED
+
+- [x] Error toasts
+- [x] Loading states
+- [x] LocalStorage player ID for persistence (done in Phase 4)
+
+### Phase 6: Polish UI
 
 - [ ] Responsive layout for mobile
 - [ ] Touch-friendly drag-and-drop
 - [ ] Tile animations (draw, drop, win celebration)
 - [ ] Sound effects (optional)
-- [ ] Error toasts
-- [ ] Loading states
-- [ ] LocalStorage player ID for persistence
 
 ## File Structure
 

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Socket } from "socket.io-client";
 import type { Game, Player } from "../types";
+import { useToast } from "../contexts/ToastContext";
 
 interface LobbyProps {
   socket: Socket | null;
@@ -13,56 +14,58 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
   const [gameCode, setGameCode] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [error, setError] = useState("");
+  const { showError, showWarning } = useToast();
+
+  // Show reconnect error as toast
+  useEffect(() => {
+    if (reconnectError) {
+      showWarning(`Could not rejoin previous game: ${reconnectError}`);
+    }
+  }, [reconnectError, showWarning]);
 
   const handleCreateGame = () => {
     if (!socket) {
-      setError("Socket not connected");
+      showError("Not connected to server");
       return;
     }
     if (!playerName.trim()) {
-      setError("Please enter your name");
+      showError("Please enter your name");
       return;
     }
 
-    console.log("Socket connected:", socket.connected);
-    console.log("Creating game...");
-
     setIsCreating(true);
-    setError("");
 
     socket.emit("create-game");
 
     socket.once("game-created", ({ code }: { code: string }) => {
-      console.log("Game created with code:", code);
-      // Automatically join the created game
       socket.emit("join-game", { code, playerName: playerName.trim() });
     });
 
     socket.once(
       "player-joined",
       ({ player, gameState }: { player: Player; gameState: Game }) => {
-        console.log("Player joined:", player.name);
         setIsCreating(false);
         onGameJoined(gameState, player);
       }
     );
 
     socket.once("error", ({ message }: { message: string }) => {
-      console.error("Socket error:", message);
       setIsCreating(false);
-      setError(message);
+      showError(message);
     });
   };
 
   const handleJoinGame = () => {
-    if (!socket || !playerName.trim() || !gameCode.trim()) {
-      setError("Please enter your name and game code");
+    if (!socket) {
+      showError("Not connected to server");
+      return;
+    }
+    if (!playerName.trim() || !gameCode.trim()) {
+      showError("Please enter your name and game code");
       return;
     }
 
     setIsJoining(true);
-    setError("");
 
     socket.emit("join-game", {
       code: gameCode.toUpperCase(),
@@ -79,7 +82,7 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
 
     socket.once("error", ({ message }: { message: string }) => {
       setIsJoining(false);
-      setError(message);
+      showError(message);
     });
   };
 
@@ -149,18 +152,6 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
           >
             {isJoining ? "Joining..." : "Join Game"}
           </button>
-
-          {reconnectError && (
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
-              Could not rejoin previous game: {reconnectError}
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-              {error}
-            </div>
-          )}
         </div>
       </div>
     </div>

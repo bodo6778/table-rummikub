@@ -6,6 +6,7 @@ import DrawOptions from "./DrawOptions";
 import TurnIndicator from "./TurnIndicator";
 import OpponentInfo from "./OpponentInfo";
 import GameActions from "./GameActions";
+import { useToast } from "../contexts/ToastContext";
 
 interface GameProps {
   game: GameType;
@@ -18,7 +19,10 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
   const [game, setGame] = useState<GameType>(initialGame);
   const [melds, setMelds] = useState<Meld[]>([]);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [isDropping, setIsDropping] = useState(false);
+  const [isAnnouncing, setIsAnnouncing] = useState(false);
+  const { showError, showWarning, showInfo } = useToast();
 
   // Find current player's data from game state
   const myPlayer = game.players.find((p) => p.id === currentPlayer.id);
@@ -45,6 +49,7 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
 
     const handleTileDrawn = (data: { tile: Tile; gameState: GameType }) => {
       setGame(data.gameState);
+      setIsDrawing(false);
     };
 
     const handlePlayerDrewTile = (data: { playerIndex: number; poolSize: number }) => {
@@ -82,6 +87,8 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
         currentPlayerIndex: data.currentPlayerIndex,
         hasDrawnThisTurn: false,
       }));
+      setIsDropping(false);
+      setIsDrawing(false);
     };
 
     const handleNeighborTileTaken = (data: { takerIndex: number; neighborIndex: number }) => {
@@ -99,32 +106,42 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
 
     const handleGameOver = (data: { winnerId: string; gameState: GameType; winningMelds?: Meld[]; isDraw?: boolean }) => {
       setGame(data.gameState);
+      setIsAnnouncing(false);
     };
 
     const handleInvalidAnnounce = (data: { reason: string }) => {
-      setError(data.reason);
-      setTimeout(() => setError(null), 3000);
+      showError(`Invalid announcement: ${data.reason}`);
+      setIsAnnouncing(false);
     };
 
     const handleError = (data: { message: string }) => {
-      setError(data.message);
-      setTimeout(() => setError(null), 3000);
+      showError(data.message);
+      setIsDrawing(false);
+      setIsDropping(false);
+      setIsAnnouncing(false);
     };
 
     const handlePlayerDisconnected = (data: { playerId: string; playerName: string; gameState: GameType }) => {
       setGame(data.gameState);
+      showWarning(`${data.playerName} disconnected`);
     };
 
     const handlePlayerReconnected = (data: { playerId: string; gameState: GameType }) => {
       setGame(data.gameState);
+      const player = data.gameState.players.find(p => p.id === data.playerId);
+      if (player) {
+        showInfo(`${player.name} reconnected`);
+      }
     };
 
     const handlePlayerLeft = (data: { playerId: string; playerName: string; gameState: GameType }) => {
       setGame(data.gameState);
+      showWarning(`${data.playerName} left the game`);
     };
 
     const handleTurnSkipped = (data: { skippedPlayerId: string; skippedPlayerName: string; gameState: GameType }) => {
       setGame(data.gameState);
+      showInfo(`${data.skippedPlayerName}'s turn was skipped`);
     };
 
     socket.on("game-state-update", handleGameStateUpdate);
@@ -156,24 +173,28 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
       socket.off("player-left", handlePlayerLeft);
       socket.off("turn-skipped", handleTurnSkipped);
     };
-  }, [socket, currentPlayer.id, selectedTileId]);
+  }, [socket, currentPlayer.id, selectedTileId, showError, showWarning, showInfo]);
 
   // Actions
   const handleDrawFromPool = useCallback(() => {
+    setIsDrawing(true);
     socket.emit("draw-from-pool", { code: game.code });
   }, [socket, game.code]);
 
   const handleDrawFromNeighbor = useCallback(() => {
+    setIsDrawing(true);
     socket.emit("draw-from-neighbor", { code: game.code });
   }, [socket, game.code]);
 
   const handleDropTile = useCallback(() => {
     if (!selectedTileId) return;
+    setIsDropping(true);
     socket.emit("drop-tile", { code: game.code, tileId: selectedTileId });
     setSelectedTileId(null);
   }, [socket, game.code, selectedTileId]);
 
   const handleAnnounceWin = useCallback(() => {
+    setIsAnnouncing(true);
     socket.emit("announce-win", { code: game.code, melds });
   }, [socket, game.code, melds]);
 
@@ -263,13 +284,6 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
           </div>
         )}
 
-        {/* Error message */}
-        {error && (
-          <div className="bg-red-500 text-white px-4 py-2 rounded-lg text-center animate-pulse">
-            {error}
-          </div>
-        )}
-
         {/* Opponents row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {opponents.map((opponent) => (
@@ -290,6 +304,7 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
             neighborName={leftNeighbor?.name || null}
             canDraw={isMyTurn}
             hasDrawnThisTurn={game.hasDrawnThisTurn}
+            isLoading={isDrawing}
             onDrawFromPool={handleDrawFromPool}
             onDrawFromNeighbor={handleDrawFromNeighbor}
           />
@@ -302,6 +317,8 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
               melds={melds}
               selectedTileId={selectedTileId}
               canDrop={isMyTurn && game.hasDrawnThisTurn}
+              isDropping={isDropping}
+              isAnnouncing={isAnnouncing}
               onDropTile={handleDropTile}
               onAnnounceWin={handleAnnounceWin}
             />

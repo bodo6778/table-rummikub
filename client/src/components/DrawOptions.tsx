@@ -7,6 +7,7 @@ interface DrawOptionsProps {
   neighborName: string | null;
   canDraw: boolean;
   hasDrawnThisTurn: boolean;
+  isLoading?: boolean;
   onDrawFromPool: () => void;
   onDrawFromNeighbor: () => void;
 }
@@ -17,10 +18,12 @@ export default function DrawOptions({
   neighborName,
   canDraw,
   hasDrawnThisTurn,
+  isLoading = false,
   onDrawFromPool,
   onDrawFromNeighbor,
 }: DrawOptionsProps) {
   const isMyTurn = canDraw && !hasDrawnThisTurn;
+  const isDisabled = !isMyTurn || isLoading;
 
   return (
     <div className="flex gap-6 items-center justify-center">
@@ -28,15 +31,21 @@ export default function DrawOptions({
       <div className="flex flex-col items-center gap-2">
         <button
           onClick={onDrawFromPool}
-          disabled={!isMyTurn || poolSize === 0}
+          disabled={isDisabled || poolSize === 0}
           className={`w-16 h-20 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
-            isMyTurn && poolSize > 0
+            isMyTurn && poolSize > 0 && !isLoading
               ? "bg-gradient-to-br from-blue-500 to-blue-700 border-blue-400 hover:from-blue-400 hover:to-blue-600 cursor-pointer shadow-lg hover:shadow-xl"
               : "bg-gray-400 border-gray-500 cursor-not-allowed opacity-60"
           }`}
         >
-          <span className="text-white font-bold text-lg">?</span>
-          <span className="text-white text-xs">{poolSize}</span>
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <span className="text-white font-bold text-lg">?</span>
+              <span className="text-white text-xs">{poolSize}</span>
+            </>
+          )}
         </button>
         <span className="text-gray-600 text-sm">Pool</span>
       </div>
@@ -47,9 +56,9 @@ export default function DrawOptions({
           <>
             <button
               onClick={onDrawFromNeighbor}
-              disabled={!isMyTurn}
+              disabled={isDisabled}
               className={`transition-all ${
-                isMyTurn
+                isMyTurn && !isLoading
                   ? "hover:scale-105 cursor-pointer"
                   : "cursor-not-allowed opacity-60"
               }`}
@@ -71,7 +80,7 @@ export default function DrawOptions({
       </div>
 
       {/* Status indicator */}
-      {hasDrawnThisTurn && (
+      {hasDrawnThisTurn && !isLoading && (
         <div className="text-amber-600 font-medium text-sm bg-amber-50 px-3 py-1 rounded-full">
           Already drawn - drop a tile
         </div>
