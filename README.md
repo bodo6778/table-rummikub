@@ -1,6 +1,6 @@
-# Romanian Rummy Online
+# Romanian Rummy Online - A **vibe-coded** project
 
-Online multiplayer Romanian Rummy ("remi pe tablă" variant). 2-4 players with private racks, draw-and-drop gameplay, and jokers.
+Online multiplayer Romanian Rummy ("remi pe tablă" variant). 2-4 players with private racks, draw-and-drop gameplay, and jokers. This project was done with Claude Code as an experiment. 
 
 ## Game Rules
 
