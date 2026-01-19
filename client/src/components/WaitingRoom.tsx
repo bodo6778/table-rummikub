@@ -7,6 +7,7 @@ interface WaitingRoomProps {
   game: Game;
   currentPlayer: Player;
   onGameStarted: (game: Game) => void;
+  onLeave: () => void;
 }
 
 export function WaitingRoom({
@@ -14,6 +15,7 @@ export function WaitingRoom({
   game: initialGame,
   currentPlayer,
   onGameStarted,
+  onLeave,
 }: WaitingRoomProps) {
   const [game, setGame] = useState(initialGame);
 
@@ -32,10 +34,25 @@ export function WaitingRoom({
       setGame(gameState);
     });
 
+    socket.on("player-left", ({ gameState }: { gameState: Game }) => {
+      setGame(gameState);
+    });
+
+    socket.on("player-disconnected", ({ gameState }: { gameState: Game }) => {
+      setGame(gameState);
+    });
+
+    socket.on("player-reconnected", ({ gameState }: { gameState: Game }) => {
+      setGame(gameState);
+    });
+
     return () => {
       socket.off("player-joined");
       socket.off("game-started");
       socket.off("game-state-update");
+      socket.off("player-left");
+      socket.off("player-disconnected");
+      socket.off("player-reconnected");
     };
   }, [socket, onGameStarted]);
 
@@ -71,19 +88,24 @@ export function WaitingRoom({
             {game.players.map((player, index) => (
               <div
                 key={player.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                className={`flex items-center gap-3 p-3 rounded-lg ${
+                  player.connected ? "bg-gray-50" : "bg-yellow-50"
+                }`}
               >
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    player.id === currentPlayer.id
-                      ? "bg-green-500"
-                      : "bg-blue-500"
+                    !player.connected
+                      ? "bg-yellow-500"
+                      : player.id === currentPlayer.id
+                        ? "bg-green-500"
+                        : "bg-blue-500"
                   }`}
                 ></div>
                 <span className="font-medium text-gray-800">
                   {player.name}
                   {index === 0 && " (Host)"}
                   {player.id === currentPlayer.id && " (You)"}
+                  {!player.connected && " - Disconnected"}
                 </span>
               </div>
             ))}
@@ -112,10 +134,17 @@ export function WaitingRoom({
         )}
 
         {!isHost && (
-          <div className="text-center text-gray-600">
+          <div className="text-center text-gray-600 mb-4">
             <p>Waiting for host to start the game...</p>
           </div>
         )}
+
+        <button
+          onClick={onLeave}
+          className="w-full mt-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition duration-200"
+        >
+          Leave Game
+        </button>
       </div>
     </div>
   );

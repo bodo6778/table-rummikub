@@ -35,32 +35,34 @@ Online multiplayer Romanian Rummy ("remi pe tablă" variant). 2-4 players with p
 
 ## Project Status
 
-### Phase 1: Foundation ✅ COMPLETED
+### Phase 1: Foundation ✅
+- Game creation/joining with 4-character codes
+- Socket.IO room management
+- Redis state persistence
 
-- ✅ Vite + React + TypeScript project initialized
-- ✅ Express server with Socket.IO
-- ✅ Redis connection setup
-- ✅ Socket room management
-- ✅ Create/join game flow with 4-character codes
-- ✅ Basic lobby UI
-- ✅ Game state storage in Redis
+### Phase 2: Game Logic ✅
+- 106-tile pool (2 sets of 1-13 in 4 colors + 2 jokers)
+- Meld validation (runs, groups, joker handling)
+- Turn logic and win/draw conditions
 
-### Phase 2: Game Logic ✅ COMPLETED
+### Phase 3: UI Core ✅
+- Game board layout with rack at bottom, opponents on top
+- Tile components with color-coded display
+- Drag-and-drop tile rearrangement
+- Draw options (pool or neighbor's tile)
+- Announce win button with validation
 
-- ✅ Tile pool generator (106 tiles: 2 sets of 1-13 in 4 colors + 2 jokers)
-- ✅ Shuffle and deal 14 tiles per player
-- ✅ Meld validation (runs, groups, joker handling)
-- ✅ Turn logic (draw from pool or neighbor, drop tile)
-- ✅ Win condition (all tiles form valid melds)
-- ✅ Draw condition (pool empty)
+### Phase 4: Multiplayer Sync ✅
+- Player disconnect/reconnect handling
+- Session persistence via localStorage
+- Skip turn for disconnected players (60s timeout)
+- Leave game functionality
 
-### Phase 3: UI Core (Next)
-
-- [ ] Game layout with rack display
-- [ ] Tile components
-- [ ] Drag-and-drop for rearranging
-- [ ] Draw/drop interactions
-- [ ] Announce win button
+### Phase 5: Polish (Next)
+- Responsive mobile layout
+- Touch-friendly drag-and-drop
+- Animations and sound effects
+- Error toasts and loading states
 
 ## Prerequisites
 
@@ -80,11 +82,11 @@ docker run -d --name rummikub-redis -p 6379:6379 redis:latest
 ```bash
 # Install server dependencies
 cd server
-npm install
+yarn install
 
 # Install client dependencies
 cd ../client
-npm install
+yarn install
 ```
 
 ### 3. Configure Environment (Optional)
@@ -108,14 +110,14 @@ cp .env.example .env
 **Terminal 1 - Server:**
 ```bash
 cd server
-npm run dev
+yarn dev
 ```
 Server runs on `http://localhost:3000`
 
 **Terminal 2 - Client:**
 ```bash
 cd client
-npm run dev
+yarn dev
 ```
 Client runs on `http://localhost:5173`
 
@@ -134,11 +136,20 @@ Client runs on `http://localhost:5173`
 /client
   /src
     /components
+      Tile.tsx          # Single tile display
+      SortableTile.tsx  # Draggable tile wrapper
+      Meld.tsx          # Group of tiles forming a meld
+      Rack.tsx          # Player's private rack with DnD
+      DrawOptions.tsx   # Pool and neighbor tile options
+      TurnIndicator.tsx # Current turn display
+      OpponentInfo.tsx  # Opponent status display
+      GameActions.tsx   # Drop/announce buttons
       Lobby.tsx         # Game creation/joining
       WaitingRoom.tsx   # Pre-game lobby
       Game.tsx          # Main game UI
     /hooks
-      useSocket.ts      # Socket.IO connection
+      useSocket.ts         # Socket.IO connection
+      usePlayerIdentity.ts # localStorage persistence
     /lib
       validation.ts     # Meld validation functions
     /types
@@ -173,6 +184,8 @@ Client runs on `http://localhost:5173`
 | `drop-tile` | `{ code, tileId }` | Drop a tile (ends turn) |
 | `announce-win` | `{ code, melds }` | Declare win with meld arrangement |
 | `leave-game` | `{ code }` | Leave current game |
+| `reconnect-game` | `{ code, playerId }` | Reconnect to existing game |
+| `request-skip-turn` | `{ code }` | Skip disconnected player's turn |
 
 ### Server → Client
 
@@ -186,6 +199,12 @@ Client runs on `http://localhost:5173`
 | `player-drew-tile` | `{ playerIndex, poolSize }` | Other player drew |
 | `tile-dropped` | `{ playerIndex, tile }` | Tile was dropped |
 | `game-over` | `{ winnerId, gameState, winningMelds?, isDraw? }` | Game ended |
+| `reconnect-success` | `{ player, gameState }` | Reconnection successful |
+| `reconnect-failed` | `{ reason }` | Reconnection failed |
+| `player-disconnected` | `{ playerId, playerName, gameState }` | Player went offline |
+| `player-reconnected` | `{ playerId, gameState }` | Player came back online |
+| `player-left` | `{ playerId, playerName, gameState }` | Player left the game |
+| `turn-skipped` | `{ skippedPlayerId, skippedPlayerName, gameState }` | Turn was skipped |
 | `error` | `{ message }` | Error occurred |
 
 ## Redis Commands (Debugging)
@@ -199,6 +218,9 @@ KEYS *
 
 # View specific game
 GET game:ABCD
+
+# View socket-game mappings
+KEYS socket_game:*
 
 # Clear all data
 FLUSHALL

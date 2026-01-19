@@ -11,9 +11,10 @@ interface GameProps {
   game: GameType;
   currentPlayer: Player;
   socket: Socket;
+  onLeave: () => void;
 }
 
-export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
+export function Game({ game: initialGame, currentPlayer, socket, onLeave }: GameProps) {
   const [game, setGame] = useState<GameType>(initialGame);
   const [melds, setMelds] = useState<Meld[]>([]);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
@@ -54,10 +55,23 @@ export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
       }));
     };
 
-    const handleTileDropped = (data: { playerIndex: number; tile: Tile; gameState: GameType }) => {
-      setGame(data.gameState);
-      // Clear selection after dropping
-      if (game.players[data.playerIndex]?.id === currentPlayer.id) {
+    const handleTileDropped = (data: { playerIndex: number; tile: Tile }) => {
+      setGame((prev) => {
+        const newPlayers = prev.players.map((player, index) => {
+          if (index === data.playerIndex) {
+            return {
+              ...player,
+              lastDroppedTile: data.tile,
+              // Remove the tile from their rack (for opponents display)
+              rack: player.rack.filter((t) => t.id !== data.tile.id),
+            };
+          }
+          return player;
+        });
+        return { ...prev, players: newPlayers };
+      });
+      // Clear selection if it was my drop
+      if (data.tile.id === selectedTileId) {
         setSelectedTileId(null);
       }
     };
@@ -70,8 +84,17 @@ export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
       }));
     };
 
-    const handleNeighborTileTaken = (data: { takerIndex: number; neighborIndex: number; gameState: GameType }) => {
-      setGame(data.gameState);
+    const handleNeighborTileTaken = (data: { takerIndex: number; neighborIndex: number }) => {
+      setGame((prev) => {
+        const newPlayers = prev.players.map((player, index) => {
+          if (index === data.neighborIndex) {
+            // Clear the neighbor's dropped tile
+            return { ...player, lastDroppedTile: null };
+          }
+          return player;
+        });
+        return { ...prev, players: newPlayers, hasDrawnThisTurn: true };
+      });
     };
 
     const handleGameOver = (data: { winnerId: string; gameState: GameType; winningMelds?: Meld[]; isDraw?: boolean }) => {
@@ -88,6 +111,22 @@ export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
       setTimeout(() => setError(null), 3000);
     };
 
+    const handlePlayerDisconnected = (data: { playerId: string; playerName: string; gameState: GameType }) => {
+      setGame(data.gameState);
+    };
+
+    const handlePlayerReconnected = (data: { playerId: string; gameState: GameType }) => {
+      setGame(data.gameState);
+    };
+
+    const handlePlayerLeft = (data: { playerId: string; playerName: string; gameState: GameType }) => {
+      setGame(data.gameState);
+    };
+
+    const handleTurnSkipped = (data: { skippedPlayerId: string; skippedPlayerName: string; gameState: GameType }) => {
+      setGame(data.gameState);
+    };
+
     socket.on("game-state-update", handleGameStateUpdate);
     socket.on("tile-drawn", handleTileDrawn);
     socket.on("player-drew-tile", handlePlayerDrewTile);
@@ -97,6 +136,10 @@ export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
     socket.on("game-over", handleGameOver);
     socket.on("invalid-announce", handleInvalidAnnounce);
     socket.on("error", handleError);
+    socket.on("player-disconnected", handlePlayerDisconnected);
+    socket.on("player-reconnected", handlePlayerReconnected);
+    socket.on("player-left", handlePlayerLeft);
+    socket.on("turn-skipped", handleTurnSkipped);
 
     return () => {
       socket.off("game-state-update", handleGameStateUpdate);
@@ -108,8 +151,12 @@ export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
       socket.off("game-over", handleGameOver);
       socket.off("invalid-announce", handleInvalidAnnounce);
       socket.off("error", handleError);
+      socket.off("player-disconnected", handlePlayerDisconnected);
+      socket.off("player-reconnected", handlePlayerReconnected);
+      socket.off("player-left", handlePlayerLeft);
+      socket.off("turn-skipped", handleTurnSkipped);
     };
-  }, [socket, currentPlayer.id, game.players]);
+  }, [socket, currentPlayer.id, selectedTileId]);
 
   // Actions
   const handleDrawFromPool = useCallback(() => {
@@ -129,6 +176,13 @@ export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
   const handleAnnounceWin = useCallback(() => {
     socket.emit("announce-win", { code: game.code, melds });
   }, [socket, game.code, melds]);
+
+  const handleRequestSkipTurn = useCallback(() => {
+    socket.emit("request-skip-turn", { code: game.code });
+  }, [socket, game.code]);
+
+  // Check if current player is disconnected (for skip turn button)
+  const isCurrentPlayerDisconnected = currentTurnPlayer && !currentTurnPlayer.connected;
 
   // Render game over screen
   if (game.status === "finished" || game.status === "draw") {
@@ -183,10 +237,31 @@ export function Game({ game: initialGame, currentPlayer, socket }: GameProps) {
             currentPlayerName={currentTurnPlayer?.name || ""}
             isMyTurn={isMyTurn}
           />
-          <div className="text-white text-sm">
-            Pool: <span className="font-bold">{game.pool.length}</span> tiles
+          <div className="flex items-center gap-4">
+            <div className="text-white text-sm">
+              Pool: <span className="font-bold">{game.pool.length}</span> tiles
+            </div>
+            <button
+              onClick={onLeave}
+              className="px-3 py-1 bg-red-500/80 hover:bg-red-600 text-white text-sm rounded transition-colors"
+            >
+              Leave
+            </button>
           </div>
         </div>
+
+        {/* Skip turn notice for disconnected player */}
+        {isCurrentPlayerDisconnected && !isMyTurn && (
+          <div className="bg-yellow-500 text-white px-4 py-3 rounded-lg flex items-center justify-between">
+            <span>{currentTurnPlayer?.name} is disconnected. You can request to skip their turn after 60 seconds.</span>
+            <button
+              onClick={handleRequestSkipTurn}
+              className="px-4 py-1 bg-white text-yellow-600 rounded font-medium hover:bg-yellow-100 transition-colors"
+            >
+              Skip Turn
+            </button>
+          </div>
+        )}
 
         {/* Error message */}
         {error && (

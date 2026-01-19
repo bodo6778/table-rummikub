@@ -16,6 +16,8 @@ export type Player = {
   socketId: string;
   rack: Tile[]; // 14 tiles (15 during turn after drawing)
   lastDroppedTile: Tile | null; // face up, player on right can take it
+  connected: boolean; // is player currently connected
+  disconnectedAt: number | null; // timestamp when player disconnected
 };
 
 export type Game = {

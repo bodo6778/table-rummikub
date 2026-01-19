@@ -153,12 +153,12 @@ type Game = {
 - [x] Turn indicator
 - [x] Announce win button (enabled when all tiles form valid melds)
 
-### Phase 4: Multiplayer Sync
+### Phase 4: Multiplayer Sync ✅ COMPLETED
 
-- [ ] Handle player disconnect/reconnect (store socketId, allow rejoin)
-- [ ] Sync rack state on reconnect
-- [ ] Handle edge cases (player leaves mid-game, etc.)
-- [ ] Game over broadcast and UI
+- [x] Handle player disconnect/reconnect (store socketId, allow rejoin)
+- [x] Sync rack state on reconnect
+- [x] Handle edge cases (player leaves mid-game, etc.)
+- [x] Game over broadcast and UI
 
 ### Phase 5: Polish
 

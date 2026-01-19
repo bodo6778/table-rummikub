@@ -2,6 +2,7 @@ import redis from "../redis/client.js";
 import { Game } from "../../types/index.js";
 
 const GAME_KEY_PREFIX = "game:";
+const SOCKET_GAME_PREFIX = "socket_game:";
 
 export async function saveGame(game: Game): Promise<void> {
   await redis.set(`${GAME_KEY_PREFIX}${game.code}`, JSON.stringify(game));
@@ -46,4 +47,17 @@ export async function createGame(): Promise<Game> {
 
   await saveGame(game);
   return game;
+}
+
+// Socket to game mapping functions
+export async function setSocketGame(socketId: string, gameCode: string): Promise<void> {
+  await redis.set(`${SOCKET_GAME_PREFIX}${socketId}`, gameCode);
+}
+
+export async function getSocketGame(socketId: string): Promise<string | null> {
+  return await redis.get(`${SOCKET_GAME_PREFIX}${socketId}`);
+}
+
+export async function removeSocketGame(socketId: string): Promise<void> {
+  await redis.del(`${SOCKET_GAME_PREFIX}${socketId}`);
 }

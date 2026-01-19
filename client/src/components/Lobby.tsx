@@ -5,9 +5,10 @@ import type { Game, Player } from "../types";
 interface LobbyProps {
   socket: Socket | null;
   onGameJoined: (game: Game, player: Player) => void;
+  reconnectError?: string | null;
 }
 
-export function Lobby({ socket, onGameJoined }: LobbyProps) {
+export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
   const [playerName, setPlayerName] = useState("");
   const [gameCode, setGameCode] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -148,6 +149,12 @@ export function Lobby({ socket, onGameJoined }: LobbyProps) {
           >
             {isJoining ? "Joining..." : "Join Game"}
           </button>
+
+          {reconnectError && (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
+              Could not rejoin previous game: {reconnectError}
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">

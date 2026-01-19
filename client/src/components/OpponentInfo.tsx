@@ -12,18 +12,26 @@ export default function OpponentInfo({
   isCurrentTurn,
   tileCount,
 }: OpponentInfoProps) {
+  const isDisconnected = !player.connected;
+
   return (
     <div
       className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-        isCurrentTurn
-          ? "bg-green-100 border-2 border-green-400 shadow-lg"
-          : "bg-white border border-gray-200 shadow"
+        isDisconnected
+          ? "bg-yellow-50 border-2 border-yellow-300 opacity-75"
+          : isCurrentTurn
+            ? "bg-green-100 border-2 border-green-400 shadow-lg"
+            : "bg-white border border-gray-200 shadow"
       }`}
     >
       {/* Player avatar/initial */}
       <div
         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-          isCurrentTurn ? "bg-green-500" : "bg-gray-400"
+          isDisconnected
+            ? "bg-yellow-500"
+            : isCurrentTurn
+              ? "bg-green-500"
+              : "bg-gray-400"
         }`}
       >
         {player.name.charAt(0).toUpperCase()}
@@ -31,7 +39,10 @@ export default function OpponentInfo({
 
       {/* Player info */}
       <div className="flex flex-col">
-        <span className="font-semibold text-gray-800">{player.name}</span>
+        <span className="font-semibold text-gray-800">
+          {player.name}
+          {isDisconnected && <span className="text-yellow-600 text-sm ml-1">(offline)</span>}
+        </span>
         <span className="text-sm text-gray-500">{tileCount} tiles</span>
       </div>
 
