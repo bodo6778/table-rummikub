@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  `http://${window.location.hostname}:3000`;
 
 // Create socket instance outside component to prevent StrictMode issues
 let socketInstance: Socket | null = null;

@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -33,11 +34,26 @@ export default function Rack({
   onTileSelect,
 }: RackProps) {
   const [activeTile, setActiveTile] = useState<TileType | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Prevent page scroll while dragging on touch devices
+  useEffect(() => {
+    if (!isDragging) return;
+    const prevent = (e: TouchEvent) => e.preventDefault();
+    document.addEventListener("touchmove", prevent, { passive: false });
+    return () => document.removeEventListener("touchmove", prevent);
+  }, [isDragging]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -68,6 +84,7 @@ export default function Rack({
     const tile = active.data.current?.tile as TileType | undefined;
     if (tile) {
       setActiveTile(tile);
+      setIsDragging(true);
     }
   };
 
@@ -121,6 +138,7 @@ export default function Rack({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveTile(null);
+    setIsDragging(false);
 
     if (!over) return;
 
@@ -174,6 +192,7 @@ export default function Rack({
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => { setActiveTile(null); setIsDragging(false); }}
     >
       <div className="bg-surface-700 border border-surface-400 rounded-xl p-2 sm:p-4 shadow-xl">
         <div className="flex items-center justify-between mb-2 sm:mb-3">

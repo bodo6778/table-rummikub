@@ -36,6 +36,13 @@
   --color-text-muted: #64748b;
 }
 
+/* Remove tap delay and prevent text selection on interactive elements */
+button,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 @keyframes slide-in {
   from {
     transform: translateX(100%);

@@ -33,7 +33,13 @@ export default function SortableTile({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="touch-manipulation p-0.5 sm:p-0"
+    >
       <Tile
         tile={tile}
         isSelected={isSelected}

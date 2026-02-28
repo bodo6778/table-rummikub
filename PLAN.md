@@ -188,10 +188,10 @@ type Game = {
 - [ ] Test and fix at common breakpoints (375px, 768px, 1024px, 1440px)
 
 #### 6.3 — Touch & Mobile UX
-- [ ] Touch-friendly drag-and-drop (larger hit targets, touch delay handling)
-- [ ] Tap-to-select + tap-to-place alternative to drag (for small screens)
-- [ ] Prevent page scroll during drag operations
-- [ ] Mobile-friendly button sizes (min 44px touch targets)
+- [x] Touch-friendly drag-and-drop (larger hit targets, touch delay handling)
+- [x] Tap-to-select + tap-to-place alternative to drag (for small screens)
+- [x] Prevent page scroll during drag operations
+- [x] Mobile-friendly button sizes (min 44px touch targets)
 
 #### 6.4 — Animations & Transitions
 - [ ] Tile draw animation (tile slides from pool to rack)
