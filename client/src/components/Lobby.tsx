@@ -87,9 +87,9 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
   };
 
   return (
-    <div className="min-h-screen bg-surface-900 flex items-center justify-center p-4">
-      <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-8 max-w-md w-full">
-        <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-accent-400 to-accent-500 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-surface-900 flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-5 sm:p-8 max-w-md w-full">
+        <h1 className="text-3xl sm:text-4xl font-bold text-center mb-2 bg-gradient-to-r from-accent-400 to-accent-500 bg-clip-text text-transparent">
           Rummikub
         </h1>
         <p className="text-center text-text-secondary mb-8">Online Multiplayer</p>

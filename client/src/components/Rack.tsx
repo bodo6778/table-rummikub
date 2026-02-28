@@ -175,9 +175,9 @@ export default function Rack({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="bg-surface-700 border border-surface-400 rounded-xl p-4 shadow-xl">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-text-secondary font-semibold">Your Rack</h3>
+      <div className="bg-surface-700 border border-surface-400 rounded-xl p-2 sm:p-4 shadow-xl">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <h3 className="text-text-secondary font-semibold text-sm sm:text-base">Your Rack</h3>
           <div className="flex gap-2">
             <button
               onClick={handleAddMeld}
@@ -197,7 +197,7 @@ export default function Rack({
         </div>
 
         {/* Melds */}
-        <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex flex-wrap gap-2 sm:gap-3 mb-3 sm:mb-4">
           {melds.map((meld) => (
             <Meld
               key={meld.id}

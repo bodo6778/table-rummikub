@@ -25,7 +25,7 @@ export default function Meld({ meld, onTileClick, selectedTileId }: MeldProps) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex gap-1 p-2 rounded-lg border-2 border-dashed transition-colors min-h-[80px] items-center ${
+      className={`flex gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg border-2 border-dashed transition-colors min-h-[56px] sm:min-h-[80px] items-center overflow-x-auto ${
         isOver
           ? "border-accent-400/60 bg-accent-500/10"
           : isValid

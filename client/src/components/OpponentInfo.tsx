@@ -16,7 +16,7 @@ export default function OpponentInfo({
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+      className={`flex items-center gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-xl transition-all ${
         isDisconnected
           ? "bg-surface-700 border border-status-warning/40 opacity-70"
           : isCurrentTurn
@@ -26,7 +26,7 @@ export default function OpponentInfo({
     >
       {/* Player avatar/initial */}
       <div
-        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-surface-900 ${
+        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base text-surface-900 ${
           isDisconnected
             ? "bg-status-warning"
             : isCurrentTurn
@@ -39,11 +39,11 @@ export default function OpponentInfo({
 
       {/* Player info */}
       <div className="flex flex-col">
-        <span className="font-semibold text-text-primary">
+        <span className="font-semibold text-text-primary text-sm sm:text-base truncate">
           {player.name}
-          {isDisconnected && <span className="text-status-warning text-sm ml-1">(offline)</span>}
+          {isDisconnected && <span className="text-status-warning text-xs sm:text-sm ml-1">(offline)</span>}
         </span>
-        <span className="text-sm text-text-muted">{tileCount} tiles</span>
+        <span className="text-xs sm:text-sm text-text-muted">{tileCount} tiles</span>
       </div>
 
       {/* Last dropped tile */}

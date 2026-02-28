@@ -181,10 +181,10 @@ type Game = {
 - [ ] Add proper icons (replace Unicode with SVG icons or icon library)
 
 #### 6.2 — Responsive Layout
-- [ ] Make Game layout stack vertically on mobile (opponents → draw → rack)
-- [ ] Tile size scaling for small screens (smaller tiles on mobile)
-- [ ] Rack horizontal scroll or wrap for narrow viewports
-- [ ] Lobby & WaitingRoom responsive tweaks (full-width on mobile)
+- [x] Make Game layout stack vertically on mobile (opponents → draw → rack)
+- [x] Tile size scaling for small screens (smaller tiles on mobile)
+- [x] Rack horizontal scroll or wrap for narrow viewports
+- [x] Lobby & WaitingRoom responsive tweaks (full-width on mobile)
 - [ ] Test and fix at common breakpoints (375px, 768px, 1024px, 1440px)
 
 #### 6.3 — Touch & Mobile UX

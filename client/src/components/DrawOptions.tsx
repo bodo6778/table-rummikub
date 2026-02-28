@@ -26,13 +26,13 @@ export default function DrawOptions({
   const isDisabled = !isMyTurn || isLoading;
 
   return (
-    <div className="flex gap-6 items-center justify-center">
+    <div className="flex flex-wrap gap-4 sm:gap-6 items-center justify-center">
       {/* Draw from pool */}
       <div className="flex flex-col items-center gap-2">
         <button
           onClick={onDrawFromPool}
           disabled={isDisabled || poolSize === 0}
-          className={`w-16 h-20 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
+          className={`w-12 h-14 sm:w-16 sm:h-20 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
             isMyTurn && poolSize > 0 && !isLoading
               ? "bg-accent-500 border-accent-400 hover:bg-accent-400 cursor-pointer shadow-lg hover:shadow-xl"
               : "bg-surface-600 border-surface-400 cursor-not-allowed opacity-50"
@@ -71,7 +71,7 @@ export default function DrawOptions({
           </>
         ) : (
           <>
-            <div className="w-12 h-16 rounded-lg border-2 border-dashed border-surface-400 flex items-center justify-center">
+            <div className="w-9 h-12 sm:w-12 sm:h-16 rounded-lg border-2 border-dashed border-surface-400 flex items-center justify-center">
               <span className="text-text-muted text-xs">None</span>
             </div>
             <span className="text-text-muted text-sm">No tile available</span>

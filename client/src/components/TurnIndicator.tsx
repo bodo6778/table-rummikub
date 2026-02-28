@@ -9,7 +9,7 @@ export default function TurnIndicator({
 }: TurnIndicatorProps) {
   return (
     <div
-      className={`px-4 py-2 rounded-full font-semibold text-center transition-all ${
+      className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-semibold text-center text-xs sm:text-sm transition-all ${
         isMyTurn
           ? "bg-accent-500 text-surface-900 animate-pulse-glow"
           : "bg-surface-600 text-text-secondary"

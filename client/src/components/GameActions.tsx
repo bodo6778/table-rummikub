@@ -27,12 +27,12 @@ export default function GameActions({
   const isLoading = isDropping || isAnnouncing;
 
   return (
-    <div className="flex gap-4 items-center justify-center">
+    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-center">
       {/* Drop tile button */}
       <button
         onClick={onDropTile}
         disabled={!canDrop || !selectedTileId || isLoading}
-        className={`px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+        className={`w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
           canDrop && selectedTileId && !isLoading
             ? "bg-status-error/90 hover:bg-status-error text-white shadow-lg"
             : "bg-surface-600 text-text-muted cursor-not-allowed"
@@ -48,7 +48,7 @@ export default function GameActions({
       <button
         onClick={onAnnounceWin}
         disabled={!canAnnounce || !canDrop || isLoading}
-        className={`px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+        className={`w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
           canAnnounce && canDrop && !isLoading
             ? "bg-gradient-to-r from-accent-400 to-accent-600 hover:from-accent-500 hover:to-accent-600 text-surface-900 shadow-lg animate-pulse-glow"
             : "bg-surface-600 text-text-muted cursor-not-allowed"

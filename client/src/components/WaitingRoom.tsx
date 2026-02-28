@@ -64,9 +64,9 @@ export function WaitingRoom({
   const isHost = game.players[0]?.id === currentPlayer.id;
 
   return (
-    <div className="min-h-screen bg-surface-900 flex items-center justify-center p-4">
-      <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-8 max-w-md w-full">
-        <h1 className="text-3xl font-bold text-center mb-2 text-text-primary">
+    <div className="min-h-screen bg-surface-900 flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-5 sm:p-8 max-w-md w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2 text-text-primary">
           Waiting Room
         </h1>
 
