@@ -82,10 +82,10 @@ function App() {
 
   if (appState === "reconnecting") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-xl p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Reconnecting to game...</p>
+      <div className="min-h-screen bg-surface-800 flex items-center justify-center">
+        <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-500 mx-auto mb-4"></div>
+          <p className="text-text-secondary">Reconnecting to game...</p>
         </div>
       </div>
     );

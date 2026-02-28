@@ -15,10 +15,10 @@ interface ToastProps {
 }
 
 const typeStyles: Record<ToastType, string> = {
-  success: "bg-green-500 text-white",
-  error: "bg-red-500 text-white",
-  warning: "bg-yellow-500 text-white",
-  info: "bg-blue-500 text-white",
+  success: "bg-surface-700 border border-status-success/40 text-status-success",
+  error: "bg-surface-700 border border-status-error/40 text-status-error",
+  warning: "bg-surface-700 border border-status-warning/40 text-status-warning",
+  info: "bg-surface-700 border border-status-info/40 text-status-info",
 };
 
 const typeIcons: Record<ToastType, string> = {
@@ -39,7 +39,7 @@ export function Toast({ toast, onClose }: ToastProps) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg ${typeStyles[toast.type]} animate-slide-in`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl backdrop-blur-sm ${typeStyles[toast.type]} animate-slide-in`}
       role="alert"
     >
       <span className="text-lg font-bold">{typeIcons[toast.type]}</span>

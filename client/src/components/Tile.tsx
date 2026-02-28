@@ -10,22 +10,22 @@ interface TileProps {
 }
 
 const colorClasses: Record<TileType["color"], string> = {
-  red: "text-red-600",
-  blue: "text-blue-600",
-  yellow: "text-yellow-500",
+  red: "text-tile-red",
+  blue: "text-tile-blue",
+  yellow: "text-tile-gold",
   black: "text-gray-900",
 };
 
 const Tile = forwardRef<HTMLDivElement, TileProps>(
   ({ tile, isSelected, isDragging, onClick, className = "" }, ref) => {
     const baseClasses =
-      "w-12 h-16 bg-amber-50 rounded-lg border-2 flex items-center justify-center font-bold text-2xl select-none transition-all cursor-pointer shadow-md";
+      "w-9 h-12 sm:w-12 sm:h-16 bg-tile-bg rounded-md sm:rounded-lg border border-tile-border flex items-center justify-center font-bold text-lg sm:text-2xl select-none transition-all cursor-pointer shadow-sm";
 
     const stateClasses = isDragging
       ? "opacity-50 scale-105 shadow-lg"
       : isSelected
-        ? "border-purple-500 ring-2 ring-purple-300"
-        : "border-amber-200 hover:border-amber-400";
+        ? "border-accent-500 ring-2 ring-accent-500/30"
+        : "hover:border-accent-400";
 
     if (tile.isJoker) {
       return (
@@ -34,7 +34,7 @@ const Tile = forwardRef<HTMLDivElement, TileProps>(
           onClick={onClick}
           className={`${baseClasses} ${stateClasses} ${className}`}
         >
-          <span className="text-lg bg-gradient-to-br from-red-500 via-blue-500 to-yellow-500 bg-clip-text text-transparent font-black">
+          <span className="text-lg bg-gradient-to-br from-tile-red via-tile-blue to-tile-gold bg-clip-text text-transparent font-black">
             J
           </span>
         </div>

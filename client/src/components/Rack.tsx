@@ -175,20 +175,20 @@ export default function Rack({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="bg-gradient-to-b from-amber-800 to-amber-900 rounded-xl p-4 shadow-xl">
+      <div className="bg-surface-700 border border-surface-400 rounded-xl p-4 shadow-xl">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-amber-100 font-semibold">Your Rack</h3>
+          <h3 className="text-text-secondary font-semibold">Your Rack</h3>
           <div className="flex gap-2">
             <button
               onClick={handleAddMeld}
-              className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded transition-colors"
+              className="px-3 py-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-400 text-sm rounded-lg border border-accent-500/30 transition-colors"
             >
               + Add Meld
             </button>
             {melds.some((m) => m.tiles.length === 0) && (
               <button
                 onClick={handleRemoveEmptyMelds}
-                className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm rounded transition-colors"
+                className="px-3 py-1 bg-status-error/20 hover:bg-status-error/30 text-status-error text-sm rounded-lg border border-status-error/30 transition-colors"
               >
                 Remove Empty
               </button>
@@ -210,8 +210,8 @@ export default function Rack({
 
         {/* Unassigned tiles */}
         {unassignedTiles.length > 0 && (
-          <div className="border-t border-amber-700 pt-3">
-            <p className="text-amber-200 text-sm mb-2">
+          <div className="border-t border-surface-400 pt-3">
+            <p className="text-text-muted text-sm mb-2">
               Unassigned tiles ({unassignedTiles.length})
             </p>
             <Meld

@@ -27,12 +27,12 @@ export default function Meld({ meld, onTileClick, selectedTileId }: MeldProps) {
       ref={setNodeRef}
       className={`flex gap-1 p-2 rounded-lg border-2 border-dashed transition-colors min-h-[80px] items-center ${
         isOver
-          ? "border-purple-400 bg-purple-50"
+          ? "border-accent-400/60 bg-accent-500/10"
           : isValid
-            ? "border-green-400 bg-green-50"
+            ? "border-status-success/50 bg-status-success/10"
             : meld.tiles.length > 0
-              ? "border-red-300 bg-red-50"
-              : "border-gray-300 bg-gray-50"
+              ? "border-status-error/40 bg-status-error/10"
+              : "border-surface-400/50 bg-surface-800/50"
       }`}
     >
       <SortableContext items={tileIds} strategy={horizontalListSortingStrategy}>
@@ -46,7 +46,7 @@ export default function Meld({ meld, onTileClick, selectedTileId }: MeldProps) {
         ))}
       </SortableContext>
       {meld.tiles.length === 0 && (
-        <span className="text-gray-400 text-sm px-4">Drop tiles here</span>
+        <span className="text-text-muted text-sm px-4">Drop tiles here</span>
       )}
     </div>
   );

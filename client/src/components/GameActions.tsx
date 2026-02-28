@@ -34,8 +34,8 @@ export default function GameActions({
         disabled={!canDrop || !selectedTileId || isLoading}
         className={`px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${
           canDrop && selectedTileId && !isLoading
-            ? "bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            ? "bg-status-error/90 hover:bg-status-error text-white shadow-lg"
+            : "bg-surface-600 text-text-muted cursor-not-allowed"
         }`}
       >
         {isDropping && (
@@ -50,8 +50,8 @@ export default function GameActions({
         disabled={!canAnnounce || !canDrop || isLoading}
         className={`px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${
           canAnnounce && canDrop && !isLoading
-            ? "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl animate-pulse"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            ? "bg-gradient-to-r from-accent-400 to-accent-600 hover:from-accent-500 hover:to-accent-600 text-surface-900 shadow-lg animate-pulse-glow"
+            : "bg-surface-600 text-text-muted cursor-not-allowed"
         }`}
       >
         {isAnnouncing && (
@@ -62,7 +62,7 @@ export default function GameActions({
 
       {/* Validation feedback */}
       {!canAnnounce && totalTilesInMelds > 0 && !isLoading && (
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-text-muted">
           {!allMeldsValid
             ? "Some melds are invalid"
             : totalTilesInMelds !== 14

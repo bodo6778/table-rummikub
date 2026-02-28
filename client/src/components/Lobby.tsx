@@ -87,18 +87,18 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-        <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">
+    <div className="min-h-screen bg-surface-900 flex items-center justify-center p-4">
+      <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-8 max-w-md w-full">
+        <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-accent-400 to-accent-500 bg-clip-text text-transparent">
           Rummikub
         </h1>
-        <p className="text-center text-gray-600 mb-8">Online Multiplayer</p>
+        <p className="text-center text-text-secondary mb-8">Online Multiplayer</p>
 
         <div className="space-y-4">
           <div>
             <label
               htmlFor="playerName"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-text-secondary mb-2"
             >
               Your Name
             </label>
@@ -107,7 +107,7 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-surface-600 border border-surface-400 rounded-lg text-text-primary placeholder-text-muted focus:ring-2 focus:ring-accent-500 focus:border-transparent outline-none"
               placeholder="Enter your name"
               maxLength={20}
             />
@@ -116,21 +116,21 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
           <button
             onClick={handleCreateGame}
             disabled={isCreating || !playerName.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200"
+            className="w-full bg-accent-500 hover:bg-accent-400 disabled:bg-surface-500 disabled:text-text-muted text-surface-900 font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             {isCreating ? "Creating..." : "Create New Game"}
           </button>
 
           <div className="flex items-center gap-4">
-            <div className="flex-1 border-t border-gray-300"></div>
-            <span className="text-gray-500 text-sm">OR</span>
-            <div className="flex-1 border-t border-gray-300"></div>
+            <div className="flex-1 border-t border-surface-400"></div>
+            <span className="text-text-muted text-sm">OR</span>
+            <div className="flex-1 border-t border-surface-400"></div>
           </div>
 
           <div>
             <label
               htmlFor="gameCode"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-text-secondary mb-2"
             >
               Game Code
             </label>
@@ -139,7 +139,7 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
               type="text"
               value={gameCode}
               onChange={(e) => setGameCode(e.target.value.toUpperCase())}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase"
+              className="w-full px-4 py-2.5 bg-surface-600 border border-surface-400 rounded-lg text-text-primary placeholder-text-muted focus:ring-2 focus:ring-accent-500 focus:border-transparent outline-none uppercase"
               placeholder="ABCD"
               maxLength={4}
             />
@@ -148,7 +148,7 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
           <button
             onClick={handleJoinGame}
             disabled={isJoining || !playerName.trim() || !gameCode.trim()}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200"
+            className="w-full bg-surface-600 hover:bg-surface-500 border border-accent-500 text-accent-400 disabled:border-surface-400 disabled:text-text-muted font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             {isJoining ? "Joining..." : "Join Game"}
           </button>

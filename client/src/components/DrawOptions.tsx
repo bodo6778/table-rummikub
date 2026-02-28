@@ -34,8 +34,8 @@ export default function DrawOptions({
           disabled={isDisabled || poolSize === 0}
           className={`w-16 h-20 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
             isMyTurn && poolSize > 0 && !isLoading
-              ? "bg-gradient-to-br from-blue-500 to-blue-700 border-blue-400 hover:from-blue-400 hover:to-blue-600 cursor-pointer shadow-lg hover:shadow-xl"
-              : "bg-gray-400 border-gray-500 cursor-not-allowed opacity-60"
+              ? "bg-accent-500 border-accent-400 hover:bg-accent-400 cursor-pointer shadow-lg hover:shadow-xl"
+              : "bg-surface-600 border-surface-400 cursor-not-allowed opacity-50"
           }`}
         >
           {isLoading ? (
@@ -47,7 +47,7 @@ export default function DrawOptions({
             </>
           )}
         </button>
-        <span className="text-gray-600 text-sm">Pool</span>
+        <span className="text-text-secondary text-sm">Pool</span>
       </div>
 
       {/* Draw from neighbor */}
@@ -65,23 +65,23 @@ export default function DrawOptions({
             >
               <Tile tile={neighborDroppedTile} />
             </button>
-            <span className="text-gray-600 text-sm">
+            <span className="text-text-secondary text-sm">
               {neighborName ? `From ${neighborName}` : "Neighbor's tile"}
             </span>
           </>
         ) : (
           <>
-            <div className="w-12 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-              <span className="text-gray-400 text-xs">None</span>
+            <div className="w-12 h-16 rounded-lg border-2 border-dashed border-surface-400 flex items-center justify-center">
+              <span className="text-text-muted text-xs">None</span>
             </div>
-            <span className="text-gray-400 text-sm">No tile available</span>
+            <span className="text-text-muted text-sm">No tile available</span>
           </>
         )}
       </div>
 
       {/* Status indicator */}
       {hasDrawnThisTurn && !isLoading && (
-        <div className="text-amber-600 font-medium text-sm bg-amber-50 px-3 py-1 rounded-full">
+        <div className="text-status-warning font-medium text-sm bg-status-warning/15 border border-status-warning/30 px-3 py-1 rounded-full">
           Already drawn - drop a tile
         </div>
       )}

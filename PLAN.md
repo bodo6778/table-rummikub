@@ -168,10 +168,46 @@ type Game = {
 
 ### Phase 6: Polish UI
 
-- [ ] Responsive layout for mobile
-- [ ] Touch-friendly drag-and-drop
-- [ ] Tile animations (draw, drop, win celebration)
-- [ ] Sound effects (optional)
+#### 6.1 — Visual Redesign & Theme
+- [ ] Define a cohesive color palette and extend Tailwind theme (custom colors, shadows, fonts)
+- [ ] Redesign Lobby screen (card layout, branding, visual hierarchy)
+- [ ] Redesign WaitingRoom screen (player avatars, ready states, better layout)
+- [ ] Redesign Game screen overall layout (spacing, sections, visual flow)
+- [ ] Polish Tile component (realistic tile look — rounded corners, embossed feel, better color contrast)
+- [ ] Polish Rack area (felt/table texture, clear meld grouping visuals)
+- [ ] Polish Opponent cards (cleaner info display, avatar colors, status badges)
+- [ ] Polish DrawOptions & GameActions (icon buttons, clearer affordances)
+- [ ] Game over / win screen redesign (modal with results, winner highlight)
+- [ ] Add proper icons (replace Unicode with SVG icons or icon library)
+
+#### 6.2 — Responsive Layout
+- [ ] Make Game layout stack vertically on mobile (opponents → draw → rack)
+- [ ] Tile size scaling for small screens (smaller tiles on mobile)
+- [ ] Rack horizontal scroll or wrap for narrow viewports
+- [ ] Lobby & WaitingRoom responsive tweaks (full-width on mobile)
+- [ ] Test and fix at common breakpoints (375px, 768px, 1024px, 1440px)
+
+#### 6.3 — Touch & Mobile UX
+- [ ] Touch-friendly drag-and-drop (larger hit targets, touch delay handling)
+- [ ] Tap-to-select + tap-to-place alternative to drag (for small screens)
+- [ ] Prevent page scroll during drag operations
+- [ ] Mobile-friendly button sizes (min 44px touch targets)
+
+#### 6.4 — Animations & Transitions
+- [ ] Tile draw animation (tile slides from pool to rack)
+- [ ] Tile drop animation (tile slides from rack to discard)
+- [ ] Meld validation feedback animation (green glow on valid, shake on invalid)
+- [ ] Turn change transition (highlight shift between players)
+- [ ] Win celebration animation (confetti / tile explosion)
+- [ ] Page/screen transitions (lobby → waiting → game)
+- [ ] Smooth rack rearrangement (dnd-kit layout animation)
+
+#### 6.5 — Sound Effects (optional)
+- [ ] Tile place/drop sound
+- [ ] Draw from pool sound
+- [ ] Turn notification sound
+- [ ] Win fanfare
+- [ ] Error/invalid action sound
 
 ## File Structure
 
