@@ -202,12 +202,12 @@ type Game = {
 - [x] Page/screen transitions (fade-in on lobby → waiting → game)
 - [x] Smooth rack rearrangement (dnd-kit layout animation with 200ms ease)
 
-#### 6.5 — Sound Effects (optional)
-- [ ] Tile place/drop sound
-- [ ] Draw from pool sound
-- [ ] Turn notification sound
-- [ ] Win fanfare
-- [ ] Error/invalid action sound
+#### 6.5 — Sound Effects
+- [x] Tile place/drop sound
+- [x] Draw from pool sound
+- [x] Turn notification sound
+- [x] Win fanfare
+- [x] Error/invalid action sound
 
 ## File Structure
 

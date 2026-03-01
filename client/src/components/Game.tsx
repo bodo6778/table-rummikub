@@ -8,6 +8,7 @@ import OpponentInfo from "./OpponentInfo";
 import GameActions from "./GameActions";
 import { useToast } from "../contexts/ToastContext";
 import Confetti from "./Confetti";
+import { playDraw, playDrop, playTurnNotify, playWin, playError, unlockAudio } from "../lib/sounds";
 
 interface GameProps {
   game: GameType;
@@ -55,6 +56,7 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
       setIsDrawing(false);
       setJustDrawnTileId(data.tile.id);
       setTimeout(() => setJustDrawnTileId(null), 600);
+      playDraw();
     };
 
     const handlePlayerDrewTile = (data: { playerIndex: number; poolSize: number }) => {
@@ -87,11 +89,17 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
     };
 
     const handleTurnChanged = (data: { currentPlayerIndex: number }) => {
-      setGame((prev) => ({
-        ...prev,
-        currentPlayerIndex: data.currentPlayerIndex,
-        hasDrawnThisTurn: false,
-      }));
+      setGame((prev) => {
+        const isNowMyTurn = prev.players[data.currentPlayerIndex]?.id === currentPlayer.id;
+        if (isNowMyTurn) {
+          playTurnNotify();
+        }
+        return {
+          ...prev,
+          currentPlayerIndex: data.currentPlayerIndex,
+          hasDrawnThisTurn: false,
+        };
+      });
       setIsDropping(false);
       setIsDrawing(false);
     };
@@ -112,14 +120,19 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
     const handleGameOver = (data: { winnerId: string; gameState: GameType; winningMelds?: Meld[]; isDraw?: boolean }) => {
       setGame(data.gameState);
       setIsAnnouncing(false);
+      if (data.winnerId === currentPlayer.id) {
+        playWin();
+      }
     };
 
     const handleInvalidAnnounce = (data: { reason: string }) => {
+      playError();
       showError(`Invalid announcement: ${data.reason}`);
       setIsAnnouncing(false);
     };
 
     const handleError = (data: { message: string }) => {
+      playError();
       showError(data.message);
       setIsDrawing(false);
       setIsDropping(false);
@@ -182,17 +195,20 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
 
   // Actions
   const handleDrawFromPool = useCallback(() => {
+    unlockAudio();
     setIsDrawing(true);
     socket.emit("draw-from-pool", { code: game.code });
   }, [socket, game.code]);
 
   const handleDrawFromNeighbor = useCallback(() => {
+    unlockAudio();
     setIsDrawing(true);
     socket.emit("draw-from-neighbor", { code: game.code });
   }, [socket, game.code]);
 
   const handleDropTile = useCallback(() => {
     if (!selectedTileId) return;
+    playDrop();
     setDroppingTileId(selectedTileId);
     setIsDropping(true);
     // Brief delay for drop animation to play
