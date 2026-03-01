@@ -7,12 +7,16 @@ interface SortableTileProps {
   tile: TileType;
   isSelected?: boolean;
   onClick?: () => void;
+  isJustDrawn?: boolean;
+  isDropping?: boolean;
 }
 
 export default function SortableTile({
   tile,
   isSelected,
   onClick,
+  isJustDrawn,
+  isDropping,
 }: SortableTileProps) {
   const {
     attributes,
@@ -28,7 +32,7 @@ export default function SortableTile({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: transition || "transform 200ms ease",
     zIndex: isDragging ? 100 : undefined,
   };
 
@@ -44,6 +48,8 @@ export default function SortableTile({
         tile={tile}
         isSelected={isSelected}
         isDragging={isDragging}
+        isJustDrawn={isJustDrawn}
+        isDropping={isDropping}
         onClick={onClick}
       />
     </div>

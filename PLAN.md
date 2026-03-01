@@ -194,13 +194,13 @@ type Game = {
 - [x] Mobile-friendly button sizes (min 44px touch targets)
 
 #### 6.4 — Animations & Transitions
-- [ ] Tile draw animation (tile slides from pool to rack)
-- [ ] Tile drop animation (tile slides from rack to discard)
-- [ ] Meld validation feedback animation (green glow on valid, shake on invalid)
-- [ ] Turn change transition (highlight shift between players)
-- [ ] Win celebration animation (confetti / tile explosion)
-- [ ] Page/screen transitions (lobby → waiting → game)
-- [ ] Smooth rack rearrangement (dnd-kit layout animation)
+- [x] Tile draw animation (flash glow when tile enters rack)
+- [x] Tile drop animation (scale-down + fade-out before emit)
+- [x] Meld validation feedback animation (green glow on valid, shake on invalid)
+- [x] Turn change transition (smooth border/shadow shift on opponent cards)
+- [x] Win celebration animation (confetti particles + bounce-in title)
+- [x] Page/screen transitions (fade-in on lobby → waiting → game)
+- [x] Smooth rack rearrangement (dnd-kit layout animation with 200ms ease)
 
 #### 6.5 — Sound Effects (optional)
 - [ ] Tile place/drop sound

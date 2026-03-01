@@ -16,7 +16,7 @@ export default function OpponentInfo({
 
   return (
     <div
-      className={`flex items-center gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-xl transition-all ${
+      className={`flex items-center gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-xl transition-all duration-300 ${
         isDisconnected
           ? "bg-surface-700 border border-status-warning/40 opacity-70"
           : isCurrentTurn

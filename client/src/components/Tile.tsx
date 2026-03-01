@@ -5,6 +5,8 @@ interface TileProps {
   tile: TileType;
   isSelected?: boolean;
   isDragging?: boolean;
+  isJustDrawn?: boolean;
+  isDropping?: boolean;
   onClick?: () => void;
   className?: string;
 }
@@ -17,9 +19,9 @@ const colorClasses: Record<TileType["color"], string> = {
 };
 
 const Tile = forwardRef<HTMLDivElement, TileProps>(
-  ({ tile, isSelected, isDragging, onClick, className = "" }, ref) => {
+  ({ tile, isSelected, isDragging, isJustDrawn, isDropping, onClick, className = "" }, ref) => {
     const baseClasses =
-      "w-9 h-12 sm:w-12 sm:h-16 bg-tile-bg rounded-md sm:rounded-lg border border-tile-border flex items-center justify-center font-bold text-lg sm:text-2xl select-none transition-all cursor-pointer shadow-sm";
+      "w-9 h-12 sm:w-12 sm:h-16 bg-tile-bg rounded-md sm:rounded-lg border border-tile-border flex items-center justify-center font-bold text-lg sm:text-2xl select-none cursor-pointer shadow-sm";
 
     const stateClasses = isDragging
       ? "opacity-50 scale-105 shadow-lg"
@@ -27,12 +29,18 @@ const Tile = forwardRef<HTMLDivElement, TileProps>(
         ? "border-accent-500 ring-2 ring-accent-500/30"
         : "hover:border-accent-400";
 
+    const animClasses = isDropping
+      ? "animate-tile-drop"
+      : isJustDrawn
+        ? "animate-tile-flash"
+        : "transition-all";
+
     if (tile.isJoker) {
       return (
         <div
           ref={ref}
           onClick={onClick}
-          className={`${baseClasses} ${stateClasses} ${className}`}
+          className={`${baseClasses} ${stateClasses} ${animClasses} ${className}`}
         >
           <span className="text-lg bg-gradient-to-br from-tile-red via-tile-blue to-tile-gold bg-clip-text text-transparent font-black">
             J
@@ -45,7 +53,7 @@ const Tile = forwardRef<HTMLDivElement, TileProps>(
       <div
         ref={ref}
         onClick={onClick}
-        className={`${baseClasses} ${stateClasses} ${colorClasses[tile.color]} ${className}`}
+        className={`${baseClasses} ${stateClasses} ${animClasses} ${colorClasses[tile.color]} ${className}`}
       >
         {tile.number}
       </div>

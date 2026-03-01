@@ -93,34 +93,40 @@ function App() {
 
   if (appState === "lobby") {
     return (
-      <Lobby
-        socket={socket}
-        onGameJoined={handleGameJoined}
-        reconnectError={reconnectError}
-      />
+      <div key="lobby" className="animate-fade-in">
+        <Lobby
+          socket={socket}
+          onGameJoined={handleGameJoined}
+          reconnectError={reconnectError}
+        />
+      </div>
     );
   }
 
   if (appState === "waiting" && currentGame && currentPlayer) {
     return (
-      <WaitingRoom
-        socket={socket}
-        game={currentGame}
-        currentPlayer={currentPlayer}
-        onGameStarted={handleGameStarted}
-        onLeave={handleLeaveGame}
-      />
+      <div key="waiting" className="animate-fade-in">
+        <WaitingRoom
+          socket={socket}
+          game={currentGame}
+          currentPlayer={currentPlayer}
+          onGameStarted={handleGameStarted}
+          onLeave={handleLeaveGame}
+        />
+      </div>
     );
   }
 
   if (appState === "playing" && currentGame && currentPlayer) {
     return (
-      <GameComponent
-        game={currentGame}
-        currentPlayer={currentPlayer}
-        socket={socket}
-        onLeave={handleLeaveGame}
-      />
+      <div key="playing" className="animate-fade-in">
+        <GameComponent
+          game={currentGame}
+          currentPlayer={currentPlayer}
+          socket={socket}
+          onLeave={handleLeaveGame}
+        />
+      </div>
     );
   }
 

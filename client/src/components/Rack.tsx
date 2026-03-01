@@ -24,6 +24,8 @@ interface RackProps {
   onMeldsChange: (melds: MeldType[]) => void;
   selectedTileId: string | null;
   onTileSelect: (tileId: string | null) => void;
+  justDrawnTileId?: string | null;
+  droppingTileId?: string | null;
 }
 
 export default function Rack({
@@ -32,6 +34,8 @@ export default function Rack({
   onMeldsChange,
   selectedTileId,
   onTileSelect,
+  justDrawnTileId,
+  droppingTileId,
 }: RackProps) {
   const [activeTile, setActiveTile] = useState<TileType | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -223,6 +227,8 @@ export default function Rack({
               meld={meld}
               onTileClick={handleTileClick}
               selectedTileId={selectedTileId}
+              justDrawnTileId={justDrawnTileId}
+              droppingTileId={droppingTileId}
             />
           ))}
         </div>
@@ -237,6 +243,8 @@ export default function Rack({
               meld={{ id: "unassigned", tiles: unassignedTiles }}
               onTileClick={handleTileClick}
               selectedTileId={selectedTileId}
+              justDrawnTileId={justDrawnTileId}
+              droppingTileId={droppingTileId}
             />
           </div>
         )}

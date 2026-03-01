@@ -7,6 +7,7 @@ import TurnIndicator from "./TurnIndicator";
 import OpponentInfo from "./OpponentInfo";
 import GameActions from "./GameActions";
 import { useToast } from "../contexts/ToastContext";
+import Confetti from "./Confetti";
 
 interface GameProps {
   game: GameType;
@@ -22,6 +23,8 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDropping, setIsDropping] = useState(false);
   const [isAnnouncing, setIsAnnouncing] = useState(false);
+  const [justDrawnTileId, setJustDrawnTileId] = useState<string | null>(null);
+  const [droppingTileId, setDroppingTileId] = useState<string | null>(null);
   const { showError, showWarning, showInfo } = useToast();
 
   // Find current player's data from game state
@@ -50,6 +53,8 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
     const handleTileDrawn = (data: { tile: Tile; gameState: GameType }) => {
       setGame(data.gameState);
       setIsDrawing(false);
+      setJustDrawnTileId(data.tile.id);
+      setTimeout(() => setJustDrawnTileId(null), 600);
     };
 
     const handlePlayerDrewTile = (data: { playerIndex: number; poolSize: number }) => {
@@ -188,9 +193,14 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
 
   const handleDropTile = useCallback(() => {
     if (!selectedTileId) return;
+    setDroppingTileId(selectedTileId);
     setIsDropping(true);
-    socket.emit("drop-tile", { code: game.code, tileId: selectedTileId });
-    setSelectedTileId(null);
+    // Brief delay for drop animation to play
+    setTimeout(() => {
+      socket.emit("drop-tile", { code: game.code, tileId: selectedTileId });
+      setSelectedTileId(null);
+      setDroppingTileId(null);
+    }, 250);
   }, [socket, game.code, selectedTileId]);
 
   const handleAnnounceWin = useCallback(() => {
@@ -211,17 +221,18 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
     const isWinner = game.winnerId === currentPlayer.id;
 
     return (
-      <div className="min-h-screen bg-surface-900 flex items-center justify-center p-4">
-        <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+      <div className="min-h-screen bg-surface-900 flex items-center justify-center p-4 animate-fade-in">
+        {isWinner && <Confetti />}
+        <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center animate-pop-in">
           {game.status === "draw" ? (
             <>
-              <h1 className="text-4xl font-bold text-text-primary mb-4">Game Draw!</h1>
+              <h1 className="text-4xl font-bold text-text-primary mb-4 animate-bounce-in">Game Draw!</h1>
               <p className="text-text-secondary mb-6">The pool ran out with no winner.</p>
             </>
           ) : (
             <>
               <h1
-                className={`text-4xl font-bold mb-4 ${
+                className={`text-4xl font-bold mb-4 animate-bounce-in ${
                   isWinner ? "text-accent-400" : "text-text-primary"
                 }`}
               >
@@ -332,6 +343,8 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
           onMeldsChange={setMelds}
           selectedTileId={selectedTileId}
           onTileSelect={setSelectedTileId}
+          justDrawnTileId={justDrawnTileId}
+          droppingTileId={droppingTileId}
         />
       </div>
     </div>

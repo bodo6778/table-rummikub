@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -11,9 +12,11 @@ interface MeldProps {
   meld: MeldType;
   onTileClick?: (tileId: string) => void;
   selectedTileId?: string | null;
+  justDrawnTileId?: string | null;
+  droppingTileId?: string | null;
 }
 
-export default function Meld({ meld, onTileClick, selectedTileId }: MeldProps) {
+export default function Meld({ meld, onTileClick, selectedTileId, justDrawnTileId, droppingTileId }: MeldProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `meld-${meld.id}`,
     data: { type: "meld", meldId: meld.id },
@@ -22,10 +25,37 @@ export default function Meld({ meld, onTileClick, selectedTileId }: MeldProps) {
   const isValid = meld.tiles.length >= 3 && isValidMeld(meld.tiles);
   const tileIds = meld.tiles.map((t) => t.id);
 
+  // Track previous validity to trigger glow/shake on change
+  const prevValidRef = useRef<boolean | null>(null);
+  const prevTileCountRef = useRef(meld.tiles.length);
+  const [animClass, setAnimClass] = useState("");
+
+  useEffect(() => {
+    // Only animate after initial render and when tiles change
+    if (prevValidRef.current === null) {
+      prevValidRef.current = isValid;
+      prevTileCountRef.current = meld.tiles.length;
+      return;
+    }
+
+    if (meld.tiles.length >= 3 && prevTileCountRef.current !== meld.tiles.length) {
+      if (isValid && !prevValidRef.current) {
+        setAnimClass("animate-valid-glow");
+        setTimeout(() => setAnimClass(""), 700);
+      } else if (!isValid && prevValidRef.current) {
+        setAnimClass("animate-shake");
+        setTimeout(() => setAnimClass(""), 500);
+      }
+    }
+
+    prevValidRef.current = isValid;
+    prevTileCountRef.current = meld.tiles.length;
+  }, [isValid, meld.tiles.length]);
+
   return (
     <div
       ref={setNodeRef}
-      className={`flex gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg border-2 border-dashed transition-colors min-h-[56px] sm:min-h-[80px] items-center overflow-x-auto ${
+      className={`flex gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg border-2 border-dashed transition-colors min-h-[56px] sm:min-h-[80px] items-center overflow-x-auto ${animClass} ${
         isOver
           ? "border-accent-400/60 bg-accent-500/10"
           : isValid
@@ -42,6 +72,8 @@ export default function Meld({ meld, onTileClick, selectedTileId }: MeldProps) {
             tile={tile}
             isSelected={selectedTileId === tile.id}
             onClick={() => onTileClick?.(tile.id)}
+            isJustDrawn={justDrawnTileId === tile.id}
+            isDropping={droppingTileId === tile.id}
           />
         ))}
       </SortableContext>
