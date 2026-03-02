@@ -218,6 +218,33 @@ type Game = {
 - [x] `server/src/game/state.test.ts` — game state with mocked Redis
 - [x] `server/src/socket/handlers.test.ts` — game flow integration (create, join, draw, drop, announce)
 
+## Future Phases
+
+### Gameplay
+- ~~**Dropped tile history per player**~~ ✅ — show all tiles each player has discarded via a hover/tap popup on the opponent card. Both `lastDroppedTile` (for draw-from-neighbor) and `droppedTiles: Tile[]` (for history) are tracked.
+- **Rematch** — restart a new game with the same players after one ends, without going back to lobby
+- **Turn timer** — configurable per-turn countdown; auto-drop or auto-skip when time runs out (foundation already exists in `request-skip-turn`)
+- ~~**Tile sorting**~~ ✅ — sort unassigned rack tiles by color or number (buttons in rack header)
+
+### Social
+- **In-game chat** — text chat scoped to the current game room
+- **Leaderboard** — standings page showing win/loss/draw counts across the friend group
+
+### Auth & Profiles
+- **Invite-only registration** — host controls who can sign up via a one-time invite link; no random public signups
+- **Simple auth** — username + password, no email required
+- **Player profiles** — persistent stats: games played, wins, losses, draws
+
+### Infrastructure
+- **Rate limiting** — protect socket events from spam (e.g. `express-rate-limit` + per-socket event throttling)
+- **Local server deployment** — nginx reverse proxy config, environment setup for self-hosted LAN/DNS use
+- **Dedicated server migration** — production deployment guide (nginx, process manager, Redis persistence)
+
+### UX
+- **Dark mode** — toggle between light and dark themes
+- **PWA / installable** — web app manifest so friends can install to mobile home screen
+- **Background turn notifications** — browser notification or tab title update when it's your turn
+
 ## File Structure
 
 ```
@@ -261,4 +288,4 @@ type Game = {
 - Client validates optimistically, server is source of truth
 - Redis key structure: `game:{code}` → JSON stringified game state
 - Racks are private: server only sends your own rack, not opponents'
-- Dropped tiles are public: everyone sees last dropped tile per player
+- Dropped tiles are public: everyone sees last dropped tile per player (future: full drop history per player)

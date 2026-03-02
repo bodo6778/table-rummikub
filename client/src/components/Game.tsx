@@ -74,6 +74,7 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
             return {
               ...player,
               lastDroppedTile: data.tile,
+              droppedTiles: [...(player.droppedTiles || []), data.tile],
               // Remove the tile from their rack (for opponents display)
               rack: player.rack.filter((t) => t.id !== data.tile.id),
             };

@@ -18,6 +18,13 @@ import Meld from "./Meld";
 import Tile from "./Tile";
 import { v4 as uuidv4 } from "uuid";
 
+const COLOR_ORDER: Record<string, number> = {
+  red: 0,
+  blue: 1,
+  yellow: 2,
+  black: 3,
+};
+
 interface RackProps {
   tiles: TileType[];
   melds: MeldType[];
@@ -39,6 +46,21 @@ export default function Rack({
 }: RackProps) {
   const [activeTile, setActiveTile] = useState<TileType | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Local tile order for sorting unassigned tiles
+  const [tileOrder, setTileOrder] = useState<string[]>(() =>
+    tiles.map((t) => t.id),
+  );
+
+  // Sync order when tiles change (new tile drawn, tile dropped)
+  useEffect(() => {
+    setTileOrder((prev) => {
+      const currentIds = new Set(tiles.map((t) => t.id));
+      const kept = prev.filter((id) => currentIds.has(id));
+      const added = tiles.filter((t) => !prev.includes(t.id)).map((t) => t.id);
+      return [...kept, ...added];
+    });
+  }, [tiles]);
 
   // Prevent page scroll while dragging on touch devices
   useEffect(() => {
@@ -62,7 +84,7 @@ export default function Rack({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   // Find which meld contains a tile
@@ -75,13 +97,50 @@ export default function Rack({
       }
       return null;
     },
-    [melds]
+    [melds],
   );
 
-  // Get tiles that are not in any meld (unassigned)
-  const unassignedTiles = tiles.filter(
-    (tile) => !findMeldContainingTile(tile.id)
+  // Get tiles that are not in any meld (unassigned), in current sort order
+  const unassignedTiles = tileOrder
+    .map((id) => tiles.find((t) => t.id === id))
+    .filter((t): t is TileType => !!t && !findMeldContainingTile(t.id));
+
+  const sortUnassigned = useCallback(
+    (compareFn: (a: TileType, b: TileType) => number) => {
+      setTileOrder((prev) => {
+        const unassignedIds = new Set(
+          tiles.filter((t) => !findMeldContainingTile(t.id)).map((t) => t.id),
+        );
+        const sorted = tiles
+          .filter((t) => unassignedIds.has(t.id))
+          .sort(compareFn)
+          .map((t) => t.id);
+        let idx = 0;
+        return prev.map((id) => (unassignedIds.has(id) ? sorted[idx++] : id));
+      });
+    },
+    [tiles, findMeldContainingTile],
   );
+
+  const handleSortByColor = useCallback(() => {
+    sortUnassigned((a, b) => {
+      if (a.isJoker) return 1;
+      if (b.isJoker) return -1;
+      const colorDiff = COLOR_ORDER[a.color] - COLOR_ORDER[b.color];
+      return colorDiff !== 0 ? colorDiff : a.number - b.number;
+    });
+  }, [sortUnassigned]);
+
+  const handleSortByNumber = useCallback(() => {
+    sortUnassigned((a, b) => {
+      if (a.isJoker) return 1;
+      if (b.isJoker) return -1;
+      const numDiff = a.number - b.number;
+      return numDiff !== 0
+        ? numDiff
+        : COLOR_ORDER[a.color] - COLOR_ORDER[b.color];
+    });
+  }, [sortUnassigned]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -153,7 +212,11 @@ export default function Rack({
     const activeMeldId = findMeldContainingTile(activeTileId);
     const overMeldId = findMeldContainingTile(overId);
 
-    if (activeMeldId && activeMeldId === overMeldId && activeTileId !== overId) {
+    if (
+      activeMeldId &&
+      activeMeldId === overMeldId &&
+      activeTileId !== overId
+    ) {
       const newMelds = melds.map((meld) => {
         if (meld.id === activeMeldId) {
           const oldIndex = meld.tiles.findIndex((t) => t.id === activeTileId);
@@ -166,6 +229,16 @@ export default function Rack({
         return meld;
       });
       onMeldsChange(newMelds);
+    }
+
+    // Reorder within unassigned tiles
+    if (!activeMeldId && !overMeldId && activeTileId !== overId) {
+      setTileOrder((prev) => {
+        const oldIndex = prev.indexOf(activeTileId);
+        const newIndex = prev.indexOf(overId);
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        return arrayMove(prev, oldIndex, newIndex);
+      });
     }
   };
 
@@ -196,12 +269,35 @@ export default function Rack({
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => { setActiveTile(null); setIsDragging(false); }}
+      onDragCancel={() => {
+        setActiveTile(null);
+        setIsDragging(false);
+      }}
     >
       <div className="bg-surface-700 border border-surface-400 rounded-xl p-2 sm:p-4 shadow-xl">
         <div className="flex items-center justify-between mb-2 sm:mb-3">
-          <h3 className="text-text-secondary font-semibold text-sm sm:text-base">Your Rack</h3>
+          <h3 className="text-text-secondary font-semibold text-sm sm:text-base">
+            Your Rack
+          </h3>
           <div className="flex gap-2">
+            {unassignedTiles.length > 1 && (
+              <>
+                <button
+                  onClick={handleSortByColor}
+                  title="Sort unassigned tiles by color"
+                  className="px-3 py-1 bg-surface-500/30 hover:bg-surface-500/50 text-text-secondary text-sm rounded-lg border border-surface-400/40 transition-colors"
+                >
+                  Color ↕
+                </button>
+                <button
+                  onClick={handleSortByNumber}
+                  title="Sort unassigned tiles by number"
+                  className="px-3 py-1 bg-surface-500/30 hover:bg-surface-500/50 text-text-secondary text-sm rounded-lg border border-surface-400/40 transition-colors"
+                >
+                  Number ↕
+                </button>
+              </>
+            )}
             <button
               onClick={handleAddMeld}
               className="px-3 py-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-400 text-sm rounded-lg border border-accent-500/30 transition-colors"

@@ -45,6 +45,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
         socketId: socket.id,
         rack: [],
         lastDroppedTile: null,
+        droppedTiles: [],
         connected: true,
         disconnectedAt: null,
       };
@@ -91,6 +92,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
       game.players.forEach((player, index) => {
         player.rack = racks[index];
         player.lastDroppedTile = null;
+        player.droppedTiles = [];
       });
 
       game.pool = pool;
@@ -254,6 +256,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
 
       const droppedTile = currentPlayer.rack.splice(tileIndex, 1)[0];
       currentPlayer.lastDroppedTile = droppedTile;
+      currentPlayer.droppedTiles = [...currentPlayer.droppedTiles, droppedTile];
 
       // Move to next player
       game.currentPlayerIndex = (game.currentPlayerIndex + 1) % game.players.length;

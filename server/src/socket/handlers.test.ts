@@ -36,6 +36,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     socketId: "socket-1",
     rack: [],
     lastDroppedTile: null,
+    droppedTiles: [],
     connected: true,
     disconnectedAt: null,
     ...overrides,
