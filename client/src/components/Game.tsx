@@ -163,6 +163,17 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
       showInfo(`${data.skippedPlayerName}'s turn was skipped`);
     };
 
+    const handleRematchStarted = (data: { gameState: GameType }) => {
+      setGame(data.gameState);
+      setMelds([]);
+      setSelectedTileId(null);
+      setIsDrawing(false);
+      setIsDropping(false);
+      setIsAnnouncing(false);
+      setJustDrawnTileId(null);
+      setDroppingTileId(null);
+    };
+
     socket.on("game-state-update", handleGameStateUpdate);
     socket.on("tile-drawn", handleTileDrawn);
     socket.on("player-drew-tile", handlePlayerDrewTile);
@@ -176,6 +187,7 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
     socket.on("player-reconnected", handlePlayerReconnected);
     socket.on("player-left", handlePlayerLeft);
     socket.on("turn-skipped", handleTurnSkipped);
+    socket.on("rematch-started", handleRematchStarted);
 
     return () => {
       socket.off("game-state-update", handleGameStateUpdate);
@@ -191,6 +203,7 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
       socket.off("player-reconnected", handlePlayerReconnected);
       socket.off("player-left", handlePlayerLeft);
       socket.off("turn-skipped", handleTurnSkipped);
+      socket.off("rematch-started", handleRematchStarted);
     };
   }, [socket, currentPlayer.id, selectedTileId, showError, showWarning, showInfo]);
 
@@ -262,12 +275,20 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
               </p>
             </>
           )}
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-accent-500 hover:bg-accent-400 text-surface-900 rounded-lg font-semibold transition-colors"
-          >
-            Play Again
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => socket.emit("rematch", { code: game.code })}
+              className="px-6 py-3 bg-accent-500 hover:bg-accent-400 text-surface-900 rounded-lg font-semibold transition-colors"
+            >
+              Rematch
+            </button>
+            <button
+              onClick={onLeave}
+              className="px-6 py-3 bg-surface-600 hover:bg-surface-500 text-text-secondary rounded-lg font-semibold transition-colors border border-surface-400"
+            >
+              Leave
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -222,7 +222,7 @@ type Game = {
 
 ### Gameplay
 - ~~**Dropped tile history per player**~~ ✅ — show all tiles each player has discarded via a hover/tap popup on the opponent card. Both `lastDroppedTile` (for draw-from-neighbor) and `droppedTiles: Tile[]` (for history) are tracked.
-- **Rematch** — restart a new game with the same players after one ends, without going back to lobby
+- ~~**Rematch**~~ ✅ — restart a new game with the same players after one ends, without going back to lobby
 - **Turn timer** — configurable per-turn countdown; auto-drop or auto-skip when time runs out (foundation already exists in `request-skip-turn`)
 - ~~**Tile sorting**~~ ✅ — sort unassigned rack tiles by color or number (buttons in rack header)
 

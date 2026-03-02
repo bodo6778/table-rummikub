@@ -324,6 +324,54 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
     }
   });
 
+  socket.on("rematch", async ({ code }: { code: string }) => {
+    try {
+      const game = await getGame(code);
+
+      if (!game) {
+        socket.emit("error", { message: "Game not found" });
+        return;
+      }
+
+      if (game.status !== "finished" && game.status !== "draw") {
+        socket.emit("error", { message: "Game is not over yet" });
+        return;
+      }
+
+      if (game.players.length < 2) {
+        socket.emit("error", { message: "Not enough players for rematch" });
+        return;
+      }
+
+      // Regenerate and deal tiles
+      const tilePool = generateTilePool();
+      const { racks, pool } = dealTiles(tilePool, game.players.length);
+
+      // Reset player data
+      game.players.forEach((player, index) => {
+        player.rack = racks[index];
+        player.lastDroppedTile = null;
+        player.droppedTiles = [];
+      });
+
+      // Reset game state
+      game.pool = pool;
+      game.status = "playing";
+      game.currentPlayerIndex = 0;
+      game.hasDrawnThisTurn = false;
+      game.winnerId = null;
+
+      await saveGame(game);
+
+      io.to(code).emit("rematch-started", { gameState: game });
+      io.to(code).emit("turn-changed", { currentPlayerIndex: 0 });
+      console.log(`Rematch started for game ${code}`);
+    } catch (error) {
+      console.error("Error starting rematch:", error);
+      socket.emit("error", { message: "Failed to start rematch" });
+    }
+  });
+
   socket.on("leave-game", async ({ code }: { code: string }) => {
     try {
       const game = await getGame(code);

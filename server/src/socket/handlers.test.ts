@@ -769,3 +769,176 @@ describe("disconnect", () => {
     expect(mocks.saveGame).not.toHaveBeenCalled();
   });
 });
+
+// ------------------------------------------------------------------
+// rematch
+// ------------------------------------------------------------------
+
+describe("rematch", () => {
+  function makeFinishedGame(status: "finished" | "draw" = "finished") {
+    const tile = makeTile("old-t1");
+    const p1 = makePlayer({
+      id: "p1",
+      socketId: "socket-1",
+      rack: [tile],
+      lastDroppedTile: tile,
+      droppedTiles: [tile],
+    });
+    const p2 = makePlayer({
+      id: "p2",
+      socketId: "socket-2",
+      rack: [makeTile("old-t2")],
+      lastDroppedTile: null,
+      droppedTiles: [makeTile("old-t3")],
+    });
+    return makeGame({
+      players: [p1, p2],
+      pool: [],
+      status,
+      currentPlayerIndex: 1,
+      hasDrawnThisTurn: true,
+      winnerId: status === "finished" ? "p1" : null,
+    });
+  }
+
+  it("deals 14 new tiles to each player and resets game state", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    const savedGame: Game = mocks.saveGame.mock.calls[0][0];
+    expect(savedGame.status).toBe("playing");
+    expect(savedGame.currentPlayerIndex).toBe(0);
+    expect(savedGame.hasDrawnThisTurn).toBe(false);
+    expect(savedGame.winnerId).toBeNull();
+    expect(savedGame.players[0].rack).toHaveLength(14);
+    expect(savedGame.players[1].rack).toHaveLength(14);
+    expect(savedGame.pool.length).toBeGreaterThan(0);
+  });
+
+  it("resets lastDroppedTile and droppedTiles for every player", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    const savedGame: Game = mocks.saveGame.mock.calls[0][0];
+    for (const player of savedGame.players) {
+      expect(player.lastDroppedTile).toBeNull();
+      expect(player.droppedTiles).toEqual([]);
+    }
+  });
+
+  it("deals fresh tiles (not the old ones)", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    const savedGame: Game = mocks.saveGame.mock.calls[0][0];
+    const allNewIds = new Set([
+      ...savedGame.players.flatMap((p) => p.rack.map((t) => t.id)),
+      ...savedGame.pool.map((t) => t.id),
+    ]);
+    expect(allNewIds.has("old-t1")).toBe(false);
+    expect(allNewIds.has("old-t2")).toBe(false);
+  });
+
+  it("broadcasts rematch-started and turn-changed to the room", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    expect(io._roomEmit).toHaveBeenCalledWith(
+      "rematch-started",
+      expect.objectContaining({ gameState: expect.objectContaining({ status: "playing" }) })
+    );
+    expect(io._roomEmit).toHaveBeenCalledWith("turn-changed", { currentPlayerIndex: 0 });
+  });
+
+  it("also works when the previous game ended in a draw", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeFinishedGame("draw"));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    const savedGame: Game = mocks.saveGame.mock.calls[0][0];
+    expect(savedGame.status).toBe("playing");
+    expect(savedGame.winnerId).toBeNull();
+  });
+
+  it("emits error when game is not found", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(null);
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game not found" });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("emits error when game is still in progress", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeGame({ players: [makePlayer(), makePlayer()], status: "playing" }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game is not over yet" });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("emits error when game is still in waiting state", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeGame({ players: [makePlayer()], status: "waiting" }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game is not over yet" });
+  });
+
+  it("emits error when fewer than 2 players remain", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(
+      makeGame({ players: [makePlayer()], status: "finished", winnerId: "player-1" })
+    );
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", { message: "Not enough players for rematch" });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("all tiles are accounted for across racks and pool after rematch", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST" });
+
+    const savedGame: Game = mocks.saveGame.mock.calls[0][0];
+    const total =
+      savedGame.players.reduce((sum, p) => sum + p.rack.length, 0) + savedGame.pool.length;
+    expect(total).toBe(106);
+  });
+});
