@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { ArrowUpDown, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -285,30 +286,34 @@ export default function Rack({
                 <button
                   onClick={handleSortByColor}
                   title="Sort unassigned tiles by color"
-                  className="px-3 py-1 bg-surface-500/30 hover:bg-surface-500/50 text-text-secondary text-sm rounded-lg border border-surface-400/40 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-surface-500/30 hover:bg-surface-500/50 text-text-secondary text-sm rounded-lg border border-surface-400/40 transition-colors"
                 >
-                  Color ↕
+                  <ArrowUpDown size={13} />
+                  Color
                 </button>
                 <button
                   onClick={handleSortByNumber}
                   title="Sort unassigned tiles by number"
-                  className="px-3 py-1 bg-surface-500/30 hover:bg-surface-500/50 text-text-secondary text-sm rounded-lg border border-surface-400/40 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-surface-500/30 hover:bg-surface-500/50 text-text-secondary text-sm rounded-lg border border-surface-400/40 transition-colors"
                 >
-                  Number ↕
+                  <ArrowUpDown size={13} />
+                  Number
                 </button>
               </>
             )}
             <button
               onClick={handleAddMeld}
-              className="px-3 py-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-400 text-sm rounded-lg border border-accent-500/30 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-400 text-sm rounded-lg border border-accent-500/30 transition-colors"
             >
-              + Add Meld
+              <Plus size={13} />
+              Add Meld
             </button>
             {melds.some((m) => m.tiles.length === 0) && (
               <button
                 onClick={handleRemoveEmptyMelds}
-                className="px-3 py-1 bg-status-error/20 hover:bg-status-error/30 text-status-error text-sm rounded-lg border border-status-error/30 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1 bg-status-error/20 hover:bg-status-error/30 text-status-error text-sm rounded-lg border border-status-error/30 transition-colors"
               >
+                <Trash2 size={13} />
                 Remove Empty
               </button>
             )}
