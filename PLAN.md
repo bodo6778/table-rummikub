@@ -209,14 +209,14 @@ type Game = {
 - [x] Win fanfare
 - [x] Error/invalid action sound
 
-### Phase 7: Testing
+### Phase 7: Testing ✅ COMPLETED
 
-- [ ] Setup Vitest in server/ and client/
-- [ ] `server/src/game/tiles.test.ts` — tile generation (106 tiles, 2 jokers, correct distribution)
-- [ ] `server/src/game/validation.test.ts` — meld validation (runs, groups, jokers, edge cases)
-- [ ] `client/src/lib/validation.test.ts` — client-side validation mirror
-- [ ] `server/src/game/state.test.ts` — game state with mocked Redis
-- [ ] `server/src/socket/handlers.test.ts` — game flow integration (create, join, draw, drop, announce)
+- [x] Setup Vitest in server/ and client/
+- [x] `server/src/game/tiles.test.ts` — tile generation (106 tiles, 2 jokers, correct distribution)
+- [x] `server/src/game/validation.test.ts` — meld validation (runs, groups, jokers, edge cases)
+- [x] `client/src/lib/validation.test.ts` — client-side validation mirror
+- [x] `server/src/game/state.test.ts` — game state with mocked Redis
+- [x] `server/src/socket/handlers.test.ts` — game flow integration (create, join, draw, drop, announce)
 
 ## File Structure
 

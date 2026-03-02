@@ -25,9 +25,16 @@ export function isValidRun(tiles: Tile[]): boolean {
   const minNumber = sorted[0].number;
   const maxNumber = sorted[sorted.length - 1].number;
   const rangeSize = maxNumber - minNumber + 1;
-  const neededTiles = rangeSize - regularTiles.length;
 
-  return neededTiles === jokerCount;
+  const neededForGaps = rangeSize - regularTiles.length;
+  if (neededForGaps > jokerCount) return false;
+
+  const externalJokers = jokerCount - neededForGaps;
+  if (externalJokers === 0) return true;
+
+  const maxExtendLeft = minNumber - 1;
+  const maxExtendRight = 13 - maxNumber;
+  return maxExtendLeft + maxExtendRight >= externalJokers;
 }
 
 /**

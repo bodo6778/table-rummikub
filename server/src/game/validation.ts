@@ -31,11 +31,17 @@ export function isValidRun(tiles: Tile[]): boolean {
   const maxNumber = sorted[sorted.length - 1].number;
   const rangeSize = maxNumber - minNumber + 1;
 
-  // Number of tiles needed to fill the range
-  const neededTiles = rangeSize - regularTiles.length;
+  // Jokers needed to fill internal gaps between regular tiles
+  const neededForGaps = rangeSize - regularTiles.length;
+  if (neededForGaps > jokerCount) return false;
 
-  // We have enough jokers to fill the gaps
-  return neededTiles === jokerCount;
+  // Remaining jokers can extend the sequence at either end (within 1–13)
+  const externalJokers = jokerCount - neededForGaps;
+  if (externalJokers === 0) return true;
+
+  const maxExtendLeft = minNumber - 1;
+  const maxExtendRight = 13 - maxNumber;
+  return maxExtendLeft + maxExtendRight >= externalJokers;
 }
 
 /**
