@@ -513,6 +513,57 @@ describe("announce-win", () => {
     );
     expect(mocks.saveGame).not.toHaveBeenCalled();
   });
+
+  it("emits invalid-announce when melds do not cover all rack tiles", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+
+    const rack: Tile[] = [
+      makeTile("r1", "red", 1),
+      makeTile("r2", "red", 2),
+      makeTile("r3", "red", 3),
+      makeTile("b5", "blue", 5), // left out of melds
+    ];
+    // Only 3 of 4 rack tiles placed in a meld
+    const melds = [{ id: "m1", tiles: [rack[0], rack[1], rack[2]] }];
+    const player = makePlayer({ id: "p1", socketId: "socket-1", rack });
+    mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "playing" }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("announce-win", { code: "TEST", melds });
+
+    expect(socket.emit).toHaveBeenCalledWith(
+      "invalid-announce",
+      expect.objectContaining({ reason: expect.any(String) })
+    );
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("emits error when game is not in playing state", async () => {
+    const socket = createMockSocket("socket-1");
+    const io = createMockIo();
+    const player = makePlayer({ id: "p1", socketId: "socket-1" });
+    mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "finished" }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("announce-win", { code: "TEST", melds: [] });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game not in progress" });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("emits error when the announcing socket is not a player in the game", async () => {
+    const socket = createMockSocket("socket-unknown");
+    const io = createMockIo();
+    const player = makePlayer({ id: "p1", socketId: "socket-1" });
+    mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "playing" }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("announce-win", { code: "TEST", melds: [] });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", { message: "Player not found" });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
 });
 
 // ------------------------------------------------------------------
