@@ -7,6 +7,8 @@ vi.mock("../game/state.js", () => ({
   setSocketGame: vi.fn(),
   getSocketGame: vi.fn(),
   removeSocketGame: vi.fn(),
+  // Pass-through so handler tests focus on handler logic, not sanitization
+  sanitizeGameState: vi.fn((game: Game) => game),
 }));
 
 import {
@@ -16,6 +18,7 @@ import {
   setSocketGame,
   getSocketGame,
   removeSocketGame,
+  sanitizeGameState,
 } from "../game/state.js";
 
 import { registerSocketHandlers } from "./handlers.js";
@@ -34,6 +37,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     id: "player-1",
     name: "Alice",
     socketId: "socket-1",
+    reconnectToken: "token-abc",
     rack: [],
     lastDroppedTile: null,
     droppedTiles: [],
@@ -46,7 +50,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 function makeGame(overrides: Partial<Game> = {}): Game {
   return {
     id: "game-id",
-    code: "TEST",
+    code: "TEST12",
     players: [],
     pool: [],
     currentPlayerIndex: 0,
@@ -61,14 +65,18 @@ type MockEmit = ReturnType<typeof vi.fn>;
 
 function createMockSocket(id = "socket-1") {
   const handlers: Record<string, (...args: unknown[]) => unknown> = {};
+  const middlewares: Array<(data: unknown, next: () => void) => void> = [];
   const emit: MockEmit = vi.fn();
-  // Single shared mock so socket.to(room).emit(...) is observable
   const toEmit: MockEmit = vi.fn();
 
   return {
     id,
     on: vi.fn((event: string, handler: (...args: unknown[]) => unknown) => {
       handlers[event] = handler;
+    }),
+    // socket.use registers per-socket middleware; we capture but don't invoke it
+    use: vi.fn((mw: (data: unknown, next: () => void) => void) => {
+      middlewares.push(mw);
     }),
     emit,
     to: vi.fn(() => ({ emit: toEmit })),
@@ -96,6 +104,7 @@ const mocks = {
   setSocketGame: setSocketGame as ReturnType<typeof vi.fn>,
   getSocketGame: getSocketGame as ReturnType<typeof vi.fn>,
   removeSocketGame: removeSocketGame as ReturnType<typeof vi.fn>,
+  sanitizeGameState: sanitizeGameState as ReturnType<typeof vi.fn>,
 };
 
 beforeEach(() => {
@@ -104,6 +113,8 @@ beforeEach(() => {
   mocks.setSocketGame.mockResolvedValue(undefined);
   mocks.removeSocketGame.mockResolvedValue(undefined);
   mocks.getSocketGame.mockResolvedValue(null);
+  // Default pass-through; override in individual tests if needed
+  mocks.sanitizeGameState.mockImplementation((game: Game) => game);
 });
 
 // ------------------------------------------------------------------
@@ -114,12 +125,12 @@ describe("create-game", () => {
   it("emits game-created with the new game code", async () => {
     const socket = createMockSocket();
     const io = createMockIo();
-    mocks.createGame.mockResolvedValue(makeGame({ code: "ABCD" }));
+    mocks.createGame.mockResolvedValue(makeGame({ code: "ABCDEF" }));
 
     registerSocketHandlers(io as never, socket as never);
     await socket.trigger("create-game");
 
-    expect(socket.emit).toHaveBeenCalledWith("game-created", { code: "ABCD" });
+    expect(socket.emit).toHaveBeenCalledWith("game-created", { code: "ABCDEF" });
   });
 
   it("emits error when createGame throws", async () => {
@@ -139,28 +150,52 @@ describe("create-game", () => {
 // ------------------------------------------------------------------
 
 describe("join-game", () => {
-  it("adds the player, calls socket.join, and emits player-joined to both sides", async () => {
+  it("adds the player, calls socket.join, and emits player-joined to joining socket", async () => {
     const socket = createMockSocket("socket-alice");
     const io = createMockIo();
-    const game = makeGame({ code: "ROOM" });
+    const game = makeGame({ code: "ROOM12" });
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("join-game", { code: "ROOM", playerName: "Alice" });
+    await socket.trigger("join-game", { code: "ROOM12", playerName: "Alice" });
 
-    // Joining player receives player-joined
     expect(socket.emit).toHaveBeenCalledWith(
       "player-joined",
       expect.objectContaining({ player: expect.objectContaining({ name: "Alice" }) })
     );
-    // Other players in the room are also notified
-    expect(socket._toEmit).toHaveBeenCalledWith(
+    expect(socket.join).toHaveBeenCalledWith("ROOM12");
+    expect(mocks.saveGame).toHaveBeenCalled();
+  });
+
+  it("notifies existing players via io when a new player joins", async () => {
+    const existing = makePlayer({ id: "p1", socketId: "socket-existing" });
+    const game = makeGame({ code: "ROOM12", players: [existing] });
+    mocks.getGame.mockResolvedValue(game);
+
+    const socket = createMockSocket("socket-alice");
+    const io = createMockIo();
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("join-game", { code: "ROOM12", playerName: "Alice" });
+
+    // Existing player gets notified via io.to(socketId).emit
+    expect(io._roomEmit).toHaveBeenCalledWith(
       "player-joined",
       expect.objectContaining({ player: expect.objectContaining({ name: "Alice" }) })
     );
-    // Socket joins the room
-    expect(socket.join).toHaveBeenCalledWith("ROOM");
-    expect(mocks.saveGame).toHaveBeenCalled();
+  });
+
+  it("includes a reconnectToken in the player returned to the joining socket", async () => {
+    const socket = createMockSocket("socket-alice");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeGame({ code: "ROOM12" }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("join-game", { code: "ROOM12", playerName: "Alice" });
+
+    const [, { player }] = socket.emit.mock.calls.find(([ev]) => ev === "player-joined")!;
+    expect(player.reconnectToken).toBeDefined();
+    expect(typeof player.reconnectToken).toBe("string");
   });
 
   it("emits error when game not found", async () => {
@@ -169,7 +204,7 @@ describe("join-game", () => {
     mocks.getGame.mockResolvedValue(null);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("join-game", { code: "XXXX", playerName: "Bob" });
+    await socket.trigger("join-game", { code: "XXXXXX", playerName: "Bob" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game not found" });
   });
@@ -180,7 +215,7 @@ describe("join-game", () => {
     mocks.getGame.mockResolvedValue(makeGame({ status: "playing" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("join-game", { code: "TEST", playerName: "Bob" });
+    await socket.trigger("join-game", { code: "TEST12", playerName: "Bob" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game already started" });
   });
@@ -194,9 +229,47 @@ describe("join-game", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("join-game", { code: "TEST", playerName: "Eve" });
+    await socket.trigger("join-game", { code: "TEST12", playerName: "Eve" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game is full" });
+  });
+
+  // -- Name validation --
+
+  it("emits error when player name is empty", async () => {
+    const socket = createMockSocket();
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeGame());
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("join-game", { code: "TEST12", playerName: "  " });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", expect.objectContaining({ message: expect.stringContaining("Invalid") }));
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("emits error when player name exceeds 20 characters", async () => {
+    const socket = createMockSocket();
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeGame());
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("join-game", { code: "TEST12", playerName: "A".repeat(21) });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", expect.objectContaining({ message: expect.stringContaining("Invalid") }));
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("emits error when player name is not a string", async () => {
+    const socket = createMockSocket();
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeGame());
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("join-game", { code: "TEST12", playerName: 42 });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", expect.objectContaining({ message: expect.stringContaining("Invalid") }));
+    expect(mocks.saveGame).not.toHaveBeenCalled();
   });
 });
 
@@ -215,7 +288,7 @@ describe("start-game", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players, status: "waiting" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("start-game", { code: "TEST" });
+    await socket.trigger("start-game", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.status).toBe("playing");
@@ -227,16 +300,34 @@ describe("start-game", () => {
   });
 
   it("emits error with fewer than 2 players", async () => {
-    const socket = createMockSocket();
+    const socket = createMockSocket("socket-1");
     const io = createMockIo();
     mocks.getGame.mockResolvedValue(makeGame({ players: [makePlayer()] }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("start-game", { code: "TEST" });
+    await socket.trigger("start-game", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", {
       message: "Need at least 2 players to start",
     });
+  });
+
+  it("emits error when a non-host socket tries to start", async () => {
+    const socket = createMockSocket("socket-nonhost");
+    const io = createMockIo();
+    const players = [
+      makePlayer({ id: "p1", socketId: "socket-host" }),
+      makePlayer({ id: "p2", socketId: "socket-nonhost" }),
+    ];
+    mocks.getGame.mockResolvedValue(makeGame({ players, status: "waiting" }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("start-game", { code: "TEST12" });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", {
+      message: "Only the host can start the game",
+    });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
   });
 });
 
@@ -259,15 +350,13 @@ describe("draw-from-pool", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("draw-from-pool", { code: "TEST" });
+    await socket.trigger("draw-from-pool", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.players[0].rack).toContainEqual(tile);
     expect(savedGame.pool).toHaveLength(0);
     expect(savedGame.hasDrawnThisTurn).toBe(true);
-    // Drawn tile sent only to drawer
     expect(socket.emit).toHaveBeenCalledWith("tile-drawn", expect.objectContaining({ tile }));
-    // Others notified without tile reveal
     expect(socket._toEmit).toHaveBeenCalledWith("player-drew-tile", {
       playerIndex: 0,
       poolSize: 0,
@@ -282,7 +371,7 @@ describe("draw-from-pool", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("draw-from-pool", { code: "TEST" });
+    await socket.trigger("draw-from-pool", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.status).toBe("draw");
@@ -300,7 +389,7 @@ describe("draw-from-pool", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("draw-from-pool", { code: "TEST" });
+    await socket.trigger("draw-from-pool", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Not your turn" });
   });
@@ -318,7 +407,7 @@ describe("draw-from-pool", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("draw-from-pool", { code: "TEST" });
+    await socket.trigger("draw-from-pool", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Already drew this turn" });
   });
@@ -334,7 +423,6 @@ describe("draw-from-neighbor", () => {
     const io = createMockIo();
     const droppedTile = makeTile("t1");
     const player0 = makePlayer({ id: "p0", socketId: "socket-1", rack: [] });
-    // In a 2-player game, left neighbor of player 0 is player 1
     const player1 = makePlayer({
       id: "p1",
       socketId: "socket-2",
@@ -350,7 +438,7 @@ describe("draw-from-neighbor", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("draw-from-neighbor", { code: "TEST" });
+    await socket.trigger("draw-from-neighbor", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.players[0].rack).toContainEqual(droppedTile);
@@ -377,7 +465,7 @@ describe("draw-from-neighbor", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("draw-from-neighbor", { code: "TEST" });
+    await socket.trigger("draw-from-neighbor", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "No tile available from neighbor" });
   });
@@ -394,7 +482,7 @@ describe("draw-from-neighbor", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("draw-from-neighbor", { code: "TEST" });
+    await socket.trigger("draw-from-neighbor", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Already drew this turn" });
   });
@@ -420,7 +508,7 @@ describe("drop-tile", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("drop-tile", { code: "TEST", tileId: "t1" });
+    await socket.trigger("drop-tile", { code: "TEST12", tileId: "t1" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.players[0].rack).not.toContainEqual(tile);
@@ -440,7 +528,7 @@ describe("drop-tile", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("drop-tile", { code: "TEST", tileId: "t1" });
+    await socket.trigger("drop-tile", { code: "TEST12", tileId: "t1" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Must draw before dropping" });
   });
@@ -453,7 +541,7 @@ describe("drop-tile", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("drop-tile", { code: "TEST", tileId: "t-nonexistent" });
+    await socket.trigger("drop-tile", { code: "TEST12", tileId: "t-nonexistent" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Tile not in rack" });
   });
@@ -481,10 +569,12 @@ describe("announce-win", () => {
       { id: "m2", tiles: [rack[3], rack[4], rack[5]] },
     ];
     const player = makePlayer({ id: "p1", socketId: "socket-1", rack });
-    mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "playing" }));
+    mocks.getGame.mockResolvedValue(
+      makeGame({ players: [player], status: "playing", currentPlayerIndex: 0 })
+    );
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("announce-win", { code: "TEST", melds });
+    await socket.trigger("announce-win", { code: "TEST12", melds });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.status).toBe("finished");
@@ -493,6 +583,29 @@ describe("announce-win", () => {
       "game-over",
       expect.objectContaining({ winnerId: "p1" })
     );
+  });
+
+  it("emits error when it is not the announcing player's turn", async () => {
+    const socket = createMockSocket("socket-2");
+    const io = createMockIo();
+
+    const rack: Tile[] = [
+      makeTile("r1", "red", 1), makeTile("r2", "red", 2), makeTile("r3", "red", 3),
+    ];
+    const p1 = makePlayer({ id: "p1", socketId: "socket-1", rack: [] });
+    const p2 = makePlayer({ id: "p2", socketId: "socket-2", rack });
+    mocks.getGame.mockResolvedValue(
+      makeGame({ players: [p1, p2], status: "playing", currentPlayerIndex: 0 }) // p1's turn
+    );
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("announce-win", {
+      code: "TEST12",
+      melds: [{ id: "m1", tiles: rack }],
+    });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", { message: "Not your turn" });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
   });
 
   it("emits invalid-announce and does not save when melds are invalid", async () => {
@@ -505,7 +618,7 @@ describe("announce-win", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "playing" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("announce-win", { code: "TEST", melds });
+    await socket.trigger("announce-win", { code: "TEST12", melds });
 
     expect(socket.emit).toHaveBeenCalledWith(
       "invalid-announce",
@@ -522,15 +635,14 @@ describe("announce-win", () => {
       makeTile("r1", "red", 1),
       makeTile("r2", "red", 2),
       makeTile("r3", "red", 3),
-      makeTile("b5", "blue", 5), // left out of melds
+      makeTile("b5", "blue", 5),
     ];
-    // Only 3 of 4 rack tiles placed in a meld
     const melds = [{ id: "m1", tiles: [rack[0], rack[1], rack[2]] }];
     const player = makePlayer({ id: "p1", socketId: "socket-1", rack });
     mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "playing" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("announce-win", { code: "TEST", melds });
+    await socket.trigger("announce-win", { code: "TEST12", melds });
 
     expect(socket.emit).toHaveBeenCalledWith(
       "invalid-announce",
@@ -546,7 +658,7 @@ describe("announce-win", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "finished" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("announce-win", { code: "TEST", melds: [] });
+    await socket.trigger("announce-win", { code: "TEST12", melds: [] });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game not in progress" });
     expect(mocks.saveGame).not.toHaveBeenCalled();
@@ -559,7 +671,7 @@ describe("announce-win", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players: [player], status: "playing" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("announce-win", { code: "TEST", melds: [] });
+    await socket.trigger("announce-win", { code: "TEST12", melds: [] });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Player not found" });
     expect(mocks.saveGame).not.toHaveBeenCalled();
@@ -571,7 +683,7 @@ describe("announce-win", () => {
 // ------------------------------------------------------------------
 
 describe("leave-game", () => {
-  it("removes the player, saves, and notifies others", async () => {
+  it("removes the player, saves, and notifies others via io", async () => {
     const socket = createMockSocket("socket-1");
     const io = createMockIo();
     const leavingPlayer = makePlayer({ id: "p1", socketId: "socket-1" });
@@ -580,14 +692,15 @@ describe("leave-game", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("leave-game", { code: "TEST" });
+    await socket.trigger("leave-game", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.players).toHaveLength(1);
     expect(savedGame.players[0].id).toBe("p2");
-    expect(socket.leave).toHaveBeenCalledWith("TEST");
+    expect(socket.leave).toHaveBeenCalledWith("TEST12");
     expect(mocks.removeSocketGame).toHaveBeenCalledWith("socket-1");
-    expect(socket._toEmit).toHaveBeenCalledWith(
+    // Remaining player notified via io.to(socketId)
+    expect(io._roomEmit).toHaveBeenCalledWith(
       "player-left",
       expect.objectContaining({ playerId: "p1" })
     );
@@ -607,10 +720,10 @@ describe("leave-game", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("leave-game", { code: "TEST" });
+    await socket.trigger("leave-game", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
-    expect(savedGame.currentPlayerIndex).toBe(0); // only 1 player remains, wraps to 0
+    expect(savedGame.currentPlayerIndex).toBe(0); // only 1 player remains
     expect(savedGame.hasDrawnThisTurn).toBe(false);
   });
 
@@ -620,7 +733,7 @@ describe("leave-game", () => {
     mocks.getGame.mockResolvedValue(null);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("leave-game", { code: "TEST" });
+    await socket.trigger("leave-game", { code: "TEST12" });
 
     expect(mocks.removeSocketGame).toHaveBeenCalledWith("socket-1");
     expect(mocks.saveGame).not.toHaveBeenCalled();
@@ -632,31 +745,85 @@ describe("leave-game", () => {
 // ------------------------------------------------------------------
 
 describe("reconnect-game", () => {
-  it("updates socket ID and emits reconnect-success", async () => {
+  it("accepts reconnect with valid token, updates socket ID, emits reconnect-success", async () => {
     const socket = createMockSocket("socket-new");
     const io = createMockIo();
-    const player = makePlayer({ id: "p1", socketId: "socket-old", connected: false, disconnectedAt: 999 });
-    const game = makeGame({ players: [player], status: "playing", code: "ROOM" });
+    const player = makePlayer({
+      id: "p1",
+      socketId: "socket-old",
+      reconnectToken: "valid-token",
+      connected: false,
+      disconnectedAt: 999,
+    });
+    const watcher = makePlayer({ id: "p2", socketId: "socket-watcher" });
+    const game = makeGame({ players: [player, watcher], status: "playing", code: "ROOM12" });
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("reconnect-game", { code: "ROOM", playerId: "p1" });
+    await socket.trigger("reconnect-game", {
+      code: "ROOM12",
+      playerId: "p1",
+      reconnectToken: "valid-token",
+    });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.players[0].socketId).toBe("socket-new");
     expect(savedGame.players[0].connected).toBe(true);
     expect(savedGame.players[0].disconnectedAt).toBeNull();
 
-    expect(socket.join).toHaveBeenCalledWith("ROOM");
-    expect(mocks.setSocketGame).toHaveBeenCalledWith("socket-new", "ROOM");
+    expect(socket.join).toHaveBeenCalledWith("ROOM12");
+    expect(mocks.setSocketGame).toHaveBeenCalledWith("socket-new", "ROOM12");
     expect(socket.emit).toHaveBeenCalledWith(
       "reconnect-success",
       expect.objectContaining({ player: expect.objectContaining({ id: "p1" }) })
     );
-    expect(socket._toEmit).toHaveBeenCalledWith(
+    // Other players notified via io.to(socketId)
+    expect(io._roomEmit).toHaveBeenCalledWith(
       "player-reconnected",
       expect.objectContaining({ playerId: "p1" })
     );
+  });
+
+  it("emits reconnect-failed when reconnectToken does not match", async () => {
+    const socket = createMockSocket("socket-attacker");
+    const io = createMockIo();
+    const player = makePlayer({
+      id: "p1",
+      socketId: "socket-old",
+      reconnectToken: "real-secret-token",
+    });
+    mocks.getGame.mockResolvedValue(makeGame({ players: [player] }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("reconnect-game", {
+      code: "TEST12",
+      playerId: "p1",
+      reconnectToken: "wrong-token",
+    });
+
+    expect(socket.emit).toHaveBeenCalledWith("reconnect-failed", {
+      reason: "Invalid reconnect token",
+    });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("emits reconnect-failed when reconnectToken is missing", async () => {
+    const socket = createMockSocket("socket-new");
+    const io = createMockIo();
+    const player = makePlayer({ id: "p1", reconnectToken: "real-token" });
+    mocks.getGame.mockResolvedValue(makeGame({ players: [player] }));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("reconnect-game", {
+      code: "TEST12",
+      playerId: "p1",
+      reconnectToken: undefined,
+    });
+
+    expect(socket.emit).toHaveBeenCalledWith("reconnect-failed", {
+      reason: "Invalid reconnect token",
+    });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
   });
 
   it("emits reconnect-failed when game not found", async () => {
@@ -665,7 +832,11 @@ describe("reconnect-game", () => {
     mocks.getGame.mockResolvedValue(null);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("reconnect-game", { code: "GONE", playerId: "p1" });
+    await socket.trigger("reconnect-game", {
+      code: "GONE12",
+      playerId: "p1",
+      reconnectToken: "any",
+    });
 
     expect(socket.emit).toHaveBeenCalledWith("reconnect-failed", { reason: "Game not found" });
   });
@@ -676,7 +847,11 @@ describe("reconnect-game", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players: [] }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("reconnect-game", { code: "TEST", playerId: "unknown" });
+    await socket.trigger("reconnect-game", {
+      code: "TEST12",
+      playerId: "unknown",
+      reconnectToken: "any",
+    });
 
     expect(socket.emit).toHaveBeenCalledWith("reconnect-failed", {
       reason: "Player not found in game",
@@ -699,7 +874,7 @@ describe("request-skip-turn", () => {
       id: "p1",
       socketId: "socket-1",
       connected: false,
-      disconnectedAt: now - 61_000, // > 60s ago
+      disconnectedAt: now - 61_000,
     });
     const active = makePlayer({ id: "p2", socketId: "socket-2" });
     const game = makeGame({
@@ -710,13 +885,41 @@ describe("request-skip-turn", () => {
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("request-skip-turn", { code: "TEST" });
+    await socket.trigger("request-skip-turn", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.currentPlayerIndex).toBe(1);
     expect(savedGame.hasDrawnThisTurn).toBe(false);
-    expect(io._roomEmit).toHaveBeenCalledWith("turn-skipped", expect.objectContaining({ skippedPlayerId: "p1" }));
+    expect(io._roomEmit).toHaveBeenCalledWith(
+      "turn-skipped",
+      expect.objectContaining({ skippedPlayerId: "p1" })
+    );
     expect(io._roomEmit).toHaveBeenCalledWith("turn-changed", { currentPlayerIndex: 1 });
+
+    vi.restoreAllMocks();
+  });
+
+  it("emits error when a non-player socket requests the skip", async () => {
+    const now = 1_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+
+    const socket = createMockSocket("socket-outsider");
+    const io = createMockIo();
+    const disconnected = makePlayer({
+      id: "p1",
+      socketId: "socket-1",
+      connected: false,
+      disconnectedAt: now - 61_000,
+    });
+    mocks.getGame.mockResolvedValue(
+      makeGame({ players: [disconnected], status: "playing", currentPlayerIndex: 0 })
+    );
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("request-skip-turn", { code: "TEST12" });
+
+    // Non-player: silently ignored (handler returns early without acting)
+    expect(mocks.saveGame).not.toHaveBeenCalled();
 
     vi.restoreAllMocks();
   });
@@ -725,12 +928,13 @@ describe("request-skip-turn", () => {
     const socket = createMockSocket("socket-2");
     const io = createMockIo();
     const player = makePlayer({ id: "p1", socketId: "socket-1", connected: true });
+    const requester = makePlayer({ id: "p2", socketId: "socket-2" });
     mocks.getGame.mockResolvedValue(
-      makeGame({ players: [player], status: "playing", currentPlayerIndex: 0 })
+      makeGame({ players: [player, requester], status: "playing", currentPlayerIndex: 0 })
     );
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("request-skip-turn", { code: "TEST" });
+    await socket.trigger("request-skip-turn", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", {
       message: "Current player is still connected",
@@ -747,14 +951,15 @@ describe("request-skip-turn", () => {
       id: "p1",
       socketId: "socket-1",
       connected: false,
-      disconnectedAt: now - 10_000, // only 10s ago
+      disconnectedAt: now - 10_000,
     });
+    const requester = makePlayer({ id: "p2", socketId: "socket-2" });
     mocks.getGame.mockResolvedValue(
-      makeGame({ players: [disconnected], status: "playing", currentPlayerIndex: 0 })
+      makeGame({ players: [disconnected, requester], status: "playing", currentPlayerIndex: 0 })
     );
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("request-skip-turn", { code: "TEST" });
+    await socket.trigger("request-skip-turn", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith(
       "error",
@@ -770,16 +975,17 @@ describe("request-skip-turn", () => {
 // ------------------------------------------------------------------
 
 describe("disconnect", () => {
-  it("marks the player as disconnected and notifies the room", async () => {
+  it("marks the player as disconnected and notifies remaining players via io", async () => {
     const now = 1_000_000;
     vi.spyOn(Date, "now").mockReturnValue(now);
 
     const socket = createMockSocket("socket-1");
     const io = createMockIo();
     const player = makePlayer({ id: "p1", socketId: "socket-1", connected: true });
-    const game = makeGame({ players: [player], status: "playing", code: "TEST" });
+    const other = makePlayer({ id: "p2", socketId: "socket-2", connected: true });
+    const game = makeGame({ players: [player, other], status: "playing", code: "TEST12" });
 
-    mocks.getSocketGame.mockResolvedValue("TEST");
+    mocks.getSocketGame.mockResolvedValue("TEST12");
     mocks.getGame.mockResolvedValue(game);
 
     registerSocketHandlers(io as never, socket as never);
@@ -788,7 +994,7 @@ describe("disconnect", () => {
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.players[0].connected).toBe(false);
     expect(savedGame.players[0].disconnectedAt).toBe(now);
-    expect(socket._toEmit).toHaveBeenCalledWith(
+    expect(io._roomEmit).toHaveBeenCalledWith(
       "player-disconnected",
       expect.objectContaining({ playerId: "p1" })
     );
@@ -810,7 +1016,7 @@ describe("disconnect", () => {
   it("cleans up socket mapping and does nothing when game is missing", async () => {
     const socket = createMockSocket("socket-1");
     const io = createMockIo();
-    mocks.getSocketGame.mockResolvedValue("GONE");
+    mocks.getSocketGame.mockResolvedValue("GONE12");
     mocks.getGame.mockResolvedValue(null);
 
     registerSocketHandlers(io as never, socket as never);
@@ -858,7 +1064,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.status).toBe("playing");
@@ -876,7 +1082,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     for (const player of savedGame.players) {
@@ -891,7 +1097,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     const allNewIds = new Set([
@@ -908,7 +1114,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     expect(io._roomEmit).toHaveBeenCalledWith(
       "rematch-started",
@@ -923,11 +1129,25 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeFinishedGame("draw"));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.status).toBe("playing");
     expect(savedGame.winnerId).toBeNull();
+  });
+
+  it("emits error when a non-player socket requests rematch", async () => {
+    const socket = createMockSocket("socket-outsider");
+    const io = createMockIo();
+    mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
+
+    registerSocketHandlers(io as never, socket as never);
+    await socket.trigger("rematch", { code: "TEST12" });
+
+    expect(socket.emit).toHaveBeenCalledWith("error", {
+      message: "Not a player in this game",
+    });
+    expect(mocks.saveGame).not.toHaveBeenCalled();
   });
 
   it("emits error when game is not found", async () => {
@@ -936,7 +1156,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(null);
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game not found" });
     expect(mocks.saveGame).not.toHaveBeenCalled();
@@ -948,7 +1168,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players: [makePlayer(), makePlayer()], status: "playing" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game is not over yet" });
     expect(mocks.saveGame).not.toHaveBeenCalled();
@@ -960,7 +1180,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeGame({ players: [makePlayer()], status: "waiting" }));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Game is not over yet" });
   });
@@ -973,7 +1193,7 @@ describe("rematch", () => {
     );
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     expect(socket.emit).toHaveBeenCalledWith("error", { message: "Not enough players for rematch" });
     expect(mocks.saveGame).not.toHaveBeenCalled();
@@ -985,7 +1205,7 @@ describe("rematch", () => {
     mocks.getGame.mockResolvedValue(makeFinishedGame("finished"));
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("rematch", { code: "TEST" });
+    await socket.trigger("rematch", { code: "TEST12" });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     const total =

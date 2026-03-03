@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     environment:
       - PORT=3000
-      - CLIENT_URL=${CLIENT_URL:-*}
+      - CLIENT_URL=${CLIENT_URL:?Set CLIENT_URL in .env (e.g. https://yourdomain.com)}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}

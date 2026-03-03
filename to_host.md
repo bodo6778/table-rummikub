@@ -60,7 +60,7 @@ All done. Here's a summary of what was created/modified:
   ┌────────────────┬───────────────────────────────────┬───────────────────────────┐
   │    Variable    │              Purpose              │          Default          │
   ├────────────────┼───────────────────────────────────┼───────────────────────────┤
-  │ CLIENT_URL     │ CORS allowed origin for Socket.IO │ *                         │
+  │ CLIENT_URL     │ CORS allowed origin for Socket.IO │ REQUIRED — no default     │
   ├────────────────┼───────────────────────────────────┼───────────────────────────┤
   │ REDIS_HOST     │ Redis hostname                    │ localhost (Docker: redis) │
   ├────────────────┼───────────────────────────────────┼───────────────────────────┤
@@ -71,8 +71,8 @@ All done. Here's a summary of what was created/modified:
   │ PORT           │ Server listen port                │ 3000                      │
   └────────────────┴───────────────────────────────────┴───────────────────────────┘
 
-  In Docker Compose, REDIS_HOST=redis and REDIS_PORT=6379 are set automatically. You only need to provide CLIENT_URL (and
-  optionally REDIS_PASSWORD) via .env.
+  In Docker Compose, REDIS_HOST=redis and REDIS_PORT=6379 are set automatically. CLIENT_URL is REQUIRED — docker compose
+  will refuse to start if it is missing from .env. REDIS_PASSWORD is optional.
 
   Step 1 — Deploy the app
 
@@ -139,7 +139,6 @@ All done. Here's a summary of what was created/modified:
   — this is critical for Socket.IO to work. The inner Docker nginx (nginx.conf) also handles the upgrade for the /socket.io/ path.
   - The client connects to window.location.origin — no hardcoded port. So HTTPS on 443 will work transparently after the proxy
   chain.
-  - Health check endpoint: GET /health on the server returns { status: "ok", redis: "<status>" } — useful for confirming the
-  server+Redis connection is live.
+  - Health check endpoint: GET /health on the server returns { status: "ok" } — useful for a basic liveness check.
   - Redis data is persisted in a Docker named volume (redis_data) — survives container restarts.
   - No .env file is committed — only .env.example. The agent must create .env from the example.

@@ -3,23 +3,27 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { registerSocketHandlers } from "./socket/handlers.js";
-import redis from "./redis/client.js";
 
 const app = express();
 const httpServer = createServer(app);
+const clientUrl = process.env.CLIENT_URL;
+if (!clientUrl) {
+  console.warn("⚠️  CLIENT_URL not set — CORS is open to all origins (development only)");
+}
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "*",
+    origin: clientUrl || "*",
     methods: ["GET", "POST"],
   },
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", redis: redis.status });
+// Health check endpoint — minimal response to avoid leaking infrastructure details
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
 });
 
 // Socket.IO connection handling

@@ -10,7 +10,7 @@ type AppState = "lobby" | "waiting" | "playing" | "reconnecting";
 
 function App() {
   const socket = useSocket();
-  const { playerId, gameCode, saveIdentity, clearIdentity } = usePlayerIdentity();
+  const { playerId, gameCode, reconnectToken, saveIdentity, clearIdentity } = usePlayerIdentity();
   const [appState, setAppState] = useState<AppState>("lobby");
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
@@ -18,11 +18,11 @@ function App() {
 
   // Attempt to reconnect on mount if we have saved identity
   useEffect(() => {
-    if (playerId && gameCode && appState === "lobby") {
+    if (playerId && gameCode && reconnectToken && appState === "lobby") {
       setAppState("reconnecting");
-      socket.emit("reconnect-game", { code: gameCode, playerId });
+      socket.emit("reconnect-game", { code: gameCode, playerId, reconnectToken });
     }
-  }, [socket, playerId, gameCode, appState]);
+  }, [socket, playerId, gameCode, reconnectToken, appState]);
 
   // Handle reconnection events
   useEffect(() => {
@@ -61,7 +61,7 @@ function App() {
   const handleGameJoined = (game: Game, player: Player) => {
     setCurrentGame(game);
     setCurrentPlayer(player);
-    saveIdentity(player.id, player.name, game.code);
+    saveIdentity(player.id, player.name, game.code, player.reconnectToken ?? "");
     setAppState("waiting");
   };
 

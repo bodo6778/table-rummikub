@@ -60,11 +60,30 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
     };
 
     const handlePlayerDrewTile = (data: { playerIndex: number; poolSize: number }) => {
-      setGame((prev) => ({
-        ...prev,
-        pool: prev.pool.slice(0, data.poolSize),
-        hasDrawnThisTurn: prev.currentPlayerIndex === data.playerIndex ? true : prev.hasDrawnThisTurn,
-      }));
+      setGame((prev) => {
+        const drawingPlayer = prev.players[data.playerIndex];
+        const isOpponent = drawingPlayer && drawingPlayer.id !== currentPlayer.id;
+        const newPlayers = isOpponent
+          ? prev.players.map((player, index) =>
+              index === data.playerIndex
+                ? {
+                    ...player,
+                    rack: [
+                      ...player.rack,
+                      { id: `hidden-${Date.now()}`, color: "black" as const, number: 0, isJoker: false },
+                    ],
+                  }
+                : player
+            )
+          : prev.players;
+        return {
+          ...prev,
+          players: newPlayers,
+          pool: prev.pool.slice(0, data.poolSize),
+          hasDrawnThisTurn:
+            prev.currentPlayerIndex === data.playerIndex ? true : prev.hasDrawnThisTurn,
+        };
+      });
     };
 
     const handleTileDropped = (data: { playerIndex: number; tile: Tile }) => {
@@ -75,8 +94,11 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
               ...player,
               lastDroppedTile: data.tile,
               droppedTiles: [...(player.droppedTiles || []), data.tile],
-              // Remove the tile from their rack (for opponents display)
-              rack: player.rack.filter((t) => t.id !== data.tile.id),
+              // Own rack: filter by id. Opponent rack: remove one placeholder tile.
+              rack:
+                player.id === currentPlayer.id
+                  ? player.rack.filter((t) => t.id !== data.tile.id)
+                  : player.rack.slice(0, -1),
             };
           }
           return player;

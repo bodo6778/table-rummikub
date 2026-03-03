@@ -140,8 +140,8 @@ export function Lobby({ socket, onGameJoined, reconnectError }: LobbyProps) {
               value={gameCode}
               onChange={(e) => setGameCode(e.target.value.toUpperCase())}
               className="w-full px-4 py-2.5 bg-surface-600 border border-surface-400 rounded-lg text-text-primary placeholder-text-muted focus:ring-2 focus:ring-accent-500 focus:border-transparent outline-none uppercase"
-              placeholder="ABCD"
-              maxLength={4}
+              placeholder="ABCDEF"
+              maxLength={6}
             />
           </div>
 

@@ -1,5 +1,5 @@
 import redis from "../redis/client.js";
-import { Game } from "../../types/index.js";
+import { Game, Player, Tile } from "../../types/index.js";
 
 const GAME_KEY_PREFIX = "game:";
 const SOCKET_GAME_PREFIX = "socket_game:";
@@ -19,24 +19,15 @@ export async function deleteGame(code: string): Promise<void> {
 
 export function generateGameCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 4; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => chars[b % chars.length]).join("");
 }
 
 export async function createGame(): Promise<Game> {
-  let code = generateGameCode();
-
-  // Ensure code is unique
-  while (await getGame(code)) {
-    code = generateGameCode();
-  }
-
   const game: Game = {
     id: crypto.randomUUID(),
-    code,
+    code: generateGameCode(),
     players: [],
     pool: [],
     currentPlayerIndex: 0,
@@ -45,8 +36,49 @@ export async function createGame(): Promise<Game> {
     hasDrawnThisTurn: false,
   };
 
-  await saveGame(game);
+  // Atomic creation with SET NX — retry on code collision
+  let created = false;
+  while (!created) {
+    const result = await redis.set(
+      `${GAME_KEY_PREFIX}${game.code}`,
+      JSON.stringify(game),
+      "NX"
+    );
+    if (result === "OK") {
+      created = true;
+    } else {
+      game.code = generateGameCode();
+    }
+  }
+
   return game;
+}
+
+const HIDDEN_TILE_BASE: Omit<Tile, "id"> = { color: "black", number: 0, isJoker: false };
+
+/**
+ * Returns a copy of the game state safe to send to the given viewer socket.
+ * - Strips reconnectToken from all players
+ * - Replaces opponent rack contents with opaque placeholder tiles (same length)
+ */
+export function sanitizeGameState(game: Game, viewerSocketId: string): Game {
+  return {
+    ...game,
+    players: game.players.map((p): Player => {
+      // Always strip the secret token before sending to any client
+      const { reconnectToken: _token, ...safePlayer } = p;
+
+      if (p.socketId === viewerSocketId) {
+        return safePlayer as Player;
+      }
+
+      // For opponents: replace rack contents with same-length placeholder tiles
+      return {
+        ...(safePlayer as Player),
+        rack: p.rack.map((_, i) => ({ ...HIDDEN_TILE_BASE, id: `hidden-${i}` })),
+      };
+    }),
+  };
 }
 
 // Socket to game mapping functions
