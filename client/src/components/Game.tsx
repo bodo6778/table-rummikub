@@ -35,9 +35,33 @@ function GameFallback() {
   );
 }
 
+function getMeldsKey(gameCode: string, playerId: string) {
+  return `rummikub_melds_${gameCode}_${playerId}`;
+}
+
+function loadMelds(gameCode: string, playerId: string, rackTileIds: Set<string>): Meld[] {
+  try {
+    const raw = sessionStorage.getItem(getMeldsKey(gameCode, playerId));
+    if (!raw) return [];
+    const parsed: Meld[] = JSON.parse(raw);
+    return parsed
+      .map((meld) => ({ ...meld, tiles: meld.tiles.filter((t) => rackTileIds.has(t.id)) }))
+      .filter((meld) => meld.tiles.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 function GameInner({ game: initialGame, currentPlayer, socket, onLeave }: GameProps) {
   const [game, setGame] = useState<GameType>(initialGame);
-  const [melds, setMelds] = useState<Meld[]>([]);
+
+  const meldsKey = getMeldsKey(initialGame.code, currentPlayer.id);
+  const initialRackIds = new Set(
+    (initialGame.players.find((p) => p.id === currentPlayer.id)?.rack ?? []).map((t) => t.id)
+  );
+  const [melds, setMelds] = useState<Meld[]>(() =>
+    loadMelds(initialGame.code, currentPlayer.id, initialRackIds)
+  );
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDropping, setIsDropping] = useState(false);
@@ -45,6 +69,11 @@ function GameInner({ game: initialGame, currentPlayer, socket, onLeave }: GamePr
   const [justDrawnTileId, setJustDrawnTileId] = useState<string | null>(null);
   const [droppingTileId, setDroppingTileId] = useState<string | null>(null);
   const { showError, showWarning, showInfo } = useToast();
+
+  // Persist melds to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem(meldsKey, JSON.stringify(melds));
+  }, [melds, meldsKey]);
 
   // Find current player's data from game state
   const myPlayer = game.players.find((p) => p.id === currentPlayer.id);
@@ -205,6 +234,7 @@ function GameInner({ game: initialGame, currentPlayer, socket, onLeave }: GamePr
 
     const handleRematchStarted = (data: { gameState: GameType }) => {
       setGame(data.gameState);
+      sessionStorage.removeItem(meldsKey);
       setMelds([]);
       setSelectedTileId(null);
       setIsDrawing(false);
@@ -265,6 +295,13 @@ function GameInner({ game: initialGame, currentPlayer, socket, onLeave }: GamePr
     playDrop();
     setDroppingTileId(selectedTileId);
     setIsDropping(true);
+    // Remove tile from melds if it was in one
+    setMelds((prev) =>
+      prev.map((meld) => ({
+        ...meld,
+        tiles: meld.tiles.filter((t) => t.id !== selectedTileId),
+      })),
+    );
     // Brief delay for drop animation to play
     setTimeout(() => {
       socket.emit("drop-tile", { code: game.code, tileId: selectedTileId });

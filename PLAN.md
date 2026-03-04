@@ -164,7 +164,7 @@ type Game = {
 
 - [x] Error toasts
 - [x] Loading states
-- [x] LocalStorage player ID for persistence (done in Phase 4)
+- [x] sessionStorage player ID + meld state for persistence (done in Phase 4)
 
 ### Phase 6: Polish UI
 

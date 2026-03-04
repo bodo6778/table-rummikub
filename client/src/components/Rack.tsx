@@ -350,21 +350,19 @@ export default function Rack({
         </div>
 
         {/* Unassigned tiles */}
-        {unassignedTiles.length > 0 && (
-          <div className="border-t border-surface-400 pt-3">
-            <p className="text-text-muted text-sm mb-2">
-              Unassigned tiles ({unassignedTiles.length})
-            </p>
-            <Meld
-              meld={{ id: "unassigned", tiles: unassignedTiles }}
-              onTileClick={handleTileClick}
-              selectedTileId={selectedTileId}
-              justDrawnTileId={justDrawnTileId}
-              droppingTileId={droppingTileId}
-              activeTileId={activeTile?.id}
-            />
-          </div>
-        )}
+        <div className="border-t border-surface-400 pt-3">
+          <p className="text-text-muted text-sm mb-2">
+            Unassigned tiles ({unassignedTiles.length})
+          </p>
+          <Meld
+            meld={{ id: "unassigned", tiles: unassignedTiles }}
+            onTileClick={handleTileClick}
+            selectedTileId={selectedTileId}
+            justDrawnTileId={justDrawnTileId}
+            droppingTileId={droppingTileId}
+            activeTileId={activeTile?.id}
+          />
+        </div>
       </div>
 
       {/* Drag overlay */}
