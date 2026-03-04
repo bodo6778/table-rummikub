@@ -16,6 +16,17 @@ export function isValidRun(tiles: Tile[]): boolean {
   const color = regularTiles[0].color;
   if (!regularTiles.every((t) => t.color === color)) return false;
 
+  // Special case: the only valid wrap-around is exactly [12, 13, 1] (3 tiles, same color)
+  if (tiles.length === 3) {
+    const nums = regularTiles.map((t) => t.number);
+    if (
+      nums.every((n) => [1, 12, 13].includes(n)) &&
+      new Set(nums).size === nums.length
+    ) {
+      return true;
+    }
+  }
+
   const sorted = [...regularTiles].sort((a, b) => a.number - b.number);
 
   for (let i = 1; i < sorted.length; i++) {

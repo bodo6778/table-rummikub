@@ -312,8 +312,8 @@ function GameInner({ game: initialGame, currentPlayer, socket, onLeave }: GamePr
 
   const handleAnnounceWin = useCallback(() => {
     setIsAnnouncing(true);
-    socket.emit("announce-win", { code: game.code, melds });
-  }, [socket, game.code, melds]);
+    socket.emit("announce-win", { code: game.code, melds, winningTileId: selectedTileId });
+  }, [socket, game.code, melds, selectedTileId]);
 
   const handleRequestSkipTurn = useCallback(() => {
     socket.emit("request-skip-turn", { code: game.code });

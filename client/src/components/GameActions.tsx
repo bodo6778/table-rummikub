@@ -1,6 +1,8 @@
 import type { Meld } from "../types";
 import { areAllMeldsValid } from "../lib/validation";
 
+const TILES_IN_WINNING_MELDS = 14;
+
 interface GameActionsProps {
   melds: Meld[];
   selectedTileId: string | null;
@@ -20,10 +22,17 @@ export default function GameActions({
   onDropTile,
   onAnnounceWin,
 }: GameActionsProps) {
-  // Check if all tiles are in valid melds
+  // Check if all tiles except the winning tile are in valid melds
   const allMeldsValid = areAllMeldsValid(melds);
   const totalTilesInMelds = melds.reduce((sum, m) => sum + m.tiles.length, 0);
-  const canAnnounce = allMeldsValid && totalTilesInMelds === 14;
+  const winningTileInMeld = selectedTileId
+    ? melds.some((m) => m.tiles.some((t) => t.id === selectedTileId))
+    : false;
+  const canAnnounce =
+    allMeldsValid &&
+    totalTilesInMelds === TILES_IN_WINNING_MELDS &&
+    !!selectedTileId &&
+    !winningTileInMeld;
   const isLoading = isDropping || isAnnouncing;
 
   return (
@@ -65,8 +74,10 @@ export default function GameActions({
         <div className="text-sm text-text-muted">
           {!allMeldsValid
             ? "Some melds are invalid"
-            : totalTilesInMelds !== 14
-              ? `${totalTilesInMelds}/14 tiles in melds`
+            : totalTilesInMelds !== TILES_IN_WINNING_MELDS
+              ? `${totalTilesInMelds}/${TILES_IN_WINNING_MELDS} tiles in melds`
+              : !selectedTileId || winningTileInMeld
+              ? "Select your winning tile"
               : ""}
         </div>
       )}

@@ -226,6 +226,7 @@ describe("verifyTilesMatch", () => {
 
 describe("canAnnounceWin", () => {
   it("returns valid when all tiles form valid melds", () => {
+    const winningTile = tile("r7", "red", 7);
     const rack: Tile[] = [
       tile("r1", "red", 1),
       tile("r2", "red", 2),
@@ -233,12 +234,13 @@ describe("canAnnounceWin", () => {
       tile("b5", "blue", 5),
       tile("y5", "yellow", 5),
       tile("k5", "black", 5),
+      winningTile,
     ];
     const melds: Meld[] = [
       meld("m1", [rack[0], rack[1], rack[2]]),
       meld("m2", [rack[3], rack[4], rack[5]]),
     ];
-    expect(canAnnounceWin(rack, melds)).toEqual({ valid: true });
+    expect(canAnnounceWin(rack, melds, winningTile.id)).toEqual({ valid: true });
   });
 
   it("returns invalid when tiles don't match rack", () => {

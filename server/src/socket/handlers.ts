@@ -339,7 +339,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
     }
   });
 
-  socket.on("announce-win", async ({ code, melds }: { code: string; melds: Meld[] }) => {
+  socket.on("announce-win", async ({ code, melds, winningTileId }: { code: string; melds: Meld[]; winningTileId: string }) => {
     try {
       const game = await getGame(code);
 
@@ -365,7 +365,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
         return;
       }
 
-      const validation = canAnnounceWin(player.rack, melds);
+      const validation = canAnnounceWin(player.rack, melds, winningTileId);
       if (!validation.valid) {
         socket.emit("invalid-announce", { reason: validation.reason });
         return;

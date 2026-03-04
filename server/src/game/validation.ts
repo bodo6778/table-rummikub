@@ -18,6 +18,17 @@ export function isValidRun(tiles: Tile[]): boolean {
   const color = regularTiles[0].color;
   if (!regularTiles.every((t) => t.color === color)) return false;
 
+  // Special case: the only valid wrap-around is exactly [12, 13, 1] (3 tiles, same color)
+  if (tiles.length === 3) {
+    const nums = regularTiles.map((t) => t.number);
+    if (
+      nums.every((n) => [1, 12, 13].includes(n)) &&
+      new Set(nums).size === nums.length
+    ) {
+      return true;
+    }
+  }
+
   // Sort regular tiles by number
   const sorted = [...regularTiles].sort((a, b) => a.number - b.number);
 
@@ -119,10 +130,17 @@ export function verifyTilesMatch(rack: Tile[], melds: Meld[]): boolean {
  */
 export function canAnnounceWin(
   rack: Tile[],
-  melds: Meld[]
+  melds: Meld[],
+  winningTileId: string
 ): { valid: boolean; reason?: string } {
-  // Verify tiles match
-  if (!verifyTilesMatch(rack, melds)) {
+  // Verify winning tile is in rack
+  if (!rack.some((t) => t.id === winningTileId)) {
+    return { valid: false, reason: "Winning tile not in rack" };
+  }
+
+  // Verify melds cover all rack tiles except the winning tile
+  const rackWithoutWinner = rack.filter((t) => t.id !== winningTileId);
+  if (!verifyTilesMatch(rackWithoutWinner, melds)) {
     return { valid: false, reason: "Tiles don't match your rack" };
   }
 

@@ -556,6 +556,7 @@ describe("announce-win", () => {
     const socket = createMockSocket("socket-1");
     const io = createMockIo();
 
+    const winningTile = makeTile("r7", "red", 7);
     const rack: Tile[] = [
       makeTile("r1", "red", 1),
       makeTile("r2", "red", 2),
@@ -563,6 +564,7 @@ describe("announce-win", () => {
       makeTile("b5", "blue", 5),
       makeTile("y5", "yellow", 5),
       makeTile("k5", "black", 5),
+      winningTile,
     ];
     const melds = [
       { id: "m1", tiles: [rack[0], rack[1], rack[2]] },
@@ -574,7 +576,7 @@ describe("announce-win", () => {
     );
 
     registerSocketHandlers(io as never, socket as never);
-    await socket.trigger("announce-win", { code: "TEST12", melds });
+    await socket.trigger("announce-win", { code: "TEST12", melds, winningTileId: winningTile.id });
 
     const savedGame: Game = mocks.saveGame.mock.calls[0][0];
     expect(savedGame.status).toBe("finished");
