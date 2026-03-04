@@ -6,6 +6,12 @@ cd /opt/table-rummikub
 echo "Pulling latest changes..."
 git pull
 
+cd server
+yarn install
+cd ../client
+yarn install
+cd ..
+
 echo "Rebuilding and restarting containers..."
 docker compose up -d --build
 
