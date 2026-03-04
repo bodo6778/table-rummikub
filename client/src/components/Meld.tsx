@@ -14,16 +14,19 @@ interface MeldProps {
   selectedTileId?: string | null;
   justDrawnTileId?: string | null;
   droppingTileId?: string | null;
+  activeTileId?: string | null;
 }
 
-export default function Meld({ meld, onTileClick, selectedTileId, justDrawnTileId, droppingTileId }: MeldProps) {
+export default function Meld({ meld, onTileClick, selectedTileId, justDrawnTileId, droppingTileId, activeTileId }: MeldProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `meld-${meld.id}`,
     data: { type: "meld", meldId: meld.id },
   });
 
   const isValid = meld.tiles.length >= 3 && isValidMeld(meld.tiles);
-  const tileIds = meld.tiles.map((t) => t.id);
+  // Exclude the actively-dragged tile so it's never registered in two SortableContexts simultaneously
+  const visibleTiles = meld.tiles.filter((t) => t.id !== activeTileId);
+  const tileIds = visibleTiles.map((t) => t.id);
 
   // Track previous validity to trigger glow/shake on change
   const prevValidRef = useRef<boolean | null>(null);
@@ -65,18 +68,20 @@ export default function Meld({ meld, onTileClick, selectedTileId, justDrawnTileI
               : "border-surface-400/50 bg-surface-800/50"
       }`}
     >
-      <SortableContext items={tileIds} strategy={horizontalListSortingStrategy}>
-        {meld.tiles.map((tile) => (
-          <SortableTile
-            key={tile.id}
-            tile={tile}
-            isSelected={selectedTileId === tile.id}
-            onClick={() => onTileClick?.(tile.id)}
-            isJustDrawn={justDrawnTileId === tile.id}
-            isDropping={droppingTileId === tile.id}
-          />
-        ))}
-      </SortableContext>
+      {tileIds.length > 0 && (
+        <SortableContext items={tileIds} strategy={horizontalListSortingStrategy}>
+          {visibleTiles.map((tile) => (
+            <SortableTile
+              key={tile.id}
+              tile={tile}
+              isSelected={selectedTileId === tile.id}
+              onClick={() => onTileClick?.(tile.id)}
+              isJustDrawn={justDrawnTileId === tile.id}
+              isDropping={droppingTileId === tile.id}
+            />
+          ))}
+        </SortableContext>
+      )}
       {meld.tiles.length === 0 && (
         <span className="text-text-muted text-sm px-4">Drop tiles here</span>
       )}

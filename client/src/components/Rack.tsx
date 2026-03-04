@@ -1,17 +1,19 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { ArrowUpDown, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import type { Tile as TileType, Meld as MeldType } from "../types";
@@ -48,6 +50,18 @@ export default function Rack({
   const [activeTile, setActiveTile] = useState<TileType | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Always-fresh ref so drag handlers don't close over stale melds
+  const meldsRef = useRef(melds);
+  meldsRef.current = melds;
+
+  // Pointer-within first: requires the pointer to be inside a droppable, not just closest
+  // to its center. Falls back to rect intersection. Prevents oscillation at boundaries.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) return pointerCollisions;
+    return rectIntersection(args);
+  }, []);
+
   // Local tile order for sorting unassigned tiles
   const [tileOrder, setTileOrder] = useState<string[]>(() =>
     tiles.map((t) => t.id),
@@ -72,7 +86,7 @@ export default function Rack({
   }, [isDragging]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 5,
       },
@@ -88,17 +102,17 @@ export default function Rack({
     }),
   );
 
-  // Find which meld contains a tile
+  // Find which meld contains a tile — reads from ref so it's always fresh
   const findMeldContainingTile = useCallback(
     (tileId: string): string | null => {
-      for (const meld of melds) {
+      for (const meld of meldsRef.current) {
         if (meld.tiles.some((t) => t.id === tileId)) {
           return meld.id;
         }
       }
       return null;
     },
-    [melds],
+    [],
   );
 
   // Get tiles that are not in any meld (unassigned), in current sort order
@@ -175,7 +189,7 @@ export default function Rack({
 
     // If moving between melds
     if (sourceMeldId !== targetMeldId) {
-      const newMelds = melds.map((meld) => {
+      const newMelds = meldsRef.current.map((meld) => {
         if (meld.id === sourceMeldId) {
           // Remove from source
           return {
@@ -218,7 +232,7 @@ export default function Rack({
       activeMeldId === overMeldId &&
       activeTileId !== overId
     ) {
-      const newMelds = melds.map((meld) => {
+      const newMelds = meldsRef.current.map((meld) => {
         if (meld.id === activeMeldId) {
           const oldIndex = meld.tiles.findIndex((t) => t.id === activeTileId);
           const newIndex = meld.tiles.findIndex((t) => t.id === overId);
@@ -266,7 +280,7 @@ export default function Rack({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -330,6 +344,7 @@ export default function Rack({
               selectedTileId={selectedTileId}
               justDrawnTileId={justDrawnTileId}
               droppingTileId={droppingTileId}
+              activeTileId={activeTile?.id}
             />
           ))}
         </div>
@@ -346,6 +361,7 @@ export default function Rack({
               selectedTileId={selectedTileId}
               justDrawnTileId={justDrawnTileId}
               droppingTileId={droppingTileId}
+              activeTileId={activeTile?.id}
             />
           </div>
         )}

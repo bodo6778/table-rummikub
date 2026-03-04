@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import type { Socket } from "socket.io-client";
 import type { Game as GameType, Player, Tile, Meld } from "../types";
 import Rack from "./Rack";
@@ -17,7 +18,24 @@ interface GameProps {
   onLeave: () => void;
 }
 
-export function Game({ game: initialGame, currentPlayer, socket, onLeave }: GameProps) {
+function GameFallback() {
+  return (
+    <div className="min-h-screen bg-surface-800 flex items-center justify-center p-4">
+      <div className="bg-surface-700 border border-surface-400 rounded-2xl shadow-2xl p-8 text-center max-w-sm w-full">
+        <p className="text-text-primary font-semibold mb-2">Something went wrong</p>
+        <p className="text-text-secondary text-sm mb-6">Please reload the page to continue.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-accent-500 hover:bg-accent-400 text-surface-900 rounded-lg font-semibold transition-colors"
+        >
+          Reload
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GameInner({ game: initialGame, currentPlayer, socket, onLeave }: GameProps) {
   const [game, setGame] = useState<GameType>(initialGame);
   const [melds, setMelds] = useState<Meld[]>([]);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
@@ -408,5 +426,13 @@ export function Game({ game: initialGame, currentPlayer, socket, onLeave }: Game
         />
       </div>
     </div>
+  );
+}
+
+export function Game(props: GameProps) {
+  return (
+    <ErrorBoundary onError={(error, info) => console.log(error, info)} FallbackComponent={GameFallback}>
+      <GameInner {...props} />
+    </ErrorBoundary>
   );
 }
