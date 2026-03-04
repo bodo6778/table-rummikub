@@ -23,7 +23,7 @@ import {
 } from "./state.js";
 import type { Game, Player, Tile } from "../../types/index.js";
 
-const mockRedis = redis as {
+const mockRedis = redis as unknown as {
   get: ReturnType<typeof vi.fn>;
   set: ReturnType<typeof vi.fn>;
   del: ReturnType<typeof vi.fn>;
