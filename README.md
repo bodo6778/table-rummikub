@@ -54,7 +54,7 @@ Online multiplayer Romanian Rummy ("remi pe tablă" variant). 2-4 players with p
 
 ### Phase 4: Multiplayer Sync ✅
 - Player disconnect/reconnect handling
-- Session persistence via localStorage
+- Session persistence via sessionStorage
 - Skip turn for disconnected players (60s timeout)
 - Leave game functionality
 
@@ -149,7 +149,7 @@ Client runs on `http://localhost:5173`
       Game.tsx          # Main game UI
     /hooks
       useSocket.ts         # Socket.IO connection
-      usePlayerIdentity.ts # localStorage persistence
+      usePlayerIdentity.ts # sessionStorage persistence
     /lib
       validation.ts     # Meld validation functions
     /types
