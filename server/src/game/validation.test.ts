@@ -252,7 +252,7 @@ describe("canAnnounceWin", () => {
     const melds: Meld[] = [
       meld("m1", [tile("b1", "blue", 1), tile("b2", "blue", 2), tile("b3", "blue", 3)]),
     ];
-    const result = canAnnounceWin(rack, melds);
+    const result = canAnnounceWin(rack, melds, "r1");
     expect(result.valid).toBe(false);
     expect(result.reason).toBeDefined();
   });
@@ -263,7 +263,7 @@ describe("canAnnounceWin", () => {
       tile("b2", "blue", 2),
     ];
     const melds: Meld[] = [meld("m1", rack)];
-    const result = canAnnounceWin(rack, melds);
+    const result = canAnnounceWin(rack, melds, "r1");
     expect(result.valid).toBe(false);
     expect(result.reason).toBeDefined();
   });
