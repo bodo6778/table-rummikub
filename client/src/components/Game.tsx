@@ -18,6 +18,8 @@ interface GameProps {
   onLeave: () => void;
 }
 
+const GAME_VERSION = 1.1; // Increment this if we make non-backwards-compatible changes to game logic or state
+
 function GameFallback() {
   return (
     <div className="min-h-screen bg-surface-800 flex items-center justify-center p-4">
@@ -379,6 +381,8 @@ function GameInner({ game: initialGame, currentPlayer, socket, onLeave }: GamePr
           <div className="text-text-primary">
             <span className="text-xs sm:text-sm text-text-secondary">Code:</span>
             <span className="ml-1 sm:ml-2 font-mono font-bold text-sm sm:text-lg">{game.code}</span>
+            <span className="text-xs sm:text-sm text-text-secondary ml-4">Version:</span>
+            <span className="ml-1 sm:ml-2 font-mono font-bold text-sm sm:text-lg">{GAME_VERSION}</span>
           </div>
           <TurnIndicator
             currentPlayerName={currentTurnPlayer?.name || ""}
