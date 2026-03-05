@@ -13,6 +13,7 @@ yarn install
 cd ..
 
 echo "Rebuilding and restarting containers..."
+docker compose down -v
 docker compose up -d --build
 
 echo "Waiting for containers to start..."

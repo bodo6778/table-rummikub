@@ -79,8 +79,8 @@ export default function DrawOptions({
         )}
       </div>
 
-      {/* Status indicator */}
-      {hasDrawnThisTurn && !isLoading && (
+      {/* Status indicator for current player */}
+      {canDraw && hasDrawnThisTurn && !isLoading && (
         <div className="text-status-warning font-medium text-sm bg-status-warning/15 border border-status-warning/30 px-3 py-1 rounded-full">
           Already drawn - drop a tile
         </div>

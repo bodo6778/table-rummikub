@@ -18,7 +18,7 @@ interface GameProps {
   onLeave: () => void;
 }
 
-const GAME_VERSION = 1.1; // Increment this if we make non-backwards-compatible changes to game logic or state
+const GAME_VERSION = 1.2; // Increment this if we make non-backwards-compatible changes to game logic or state
 
 function GameFallback() {
   return (
