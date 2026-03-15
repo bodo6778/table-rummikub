@@ -59,6 +59,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
   socket.on("create-game", async () => {
     try {
       const game = await createGame();
+      console.log(`[${new Date().toISOString()}] Game created: ${game.code}`);
       socket.emit("game-created", { code: game.code });
     } catch (error) {
       console.error("Error creating game:", error);
@@ -107,6 +108,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
       await saveGame(game);
       await setSocketGame(socket.id, code);
       socket.join(code);
+      console.log(`[${new Date().toISOString()}] "${validName}" joined game ${code} (${game.players.length} players)`);
 
       // Send own player (includes reconnectToken) + sanitized game state
       socket.emit("player-joined", {
@@ -168,6 +170,8 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
 
       await saveGame(game);
 
+      const playerNames = game.players.map((p) => p.name).join(", ");
+      console.log(`[${new Date().toISOString()}] Game ${code} started with ${game.players.length} players: ${playerNames}`);
       broadcastToRoom(io, game, "game-started", (sanitized) => ({ gameState: sanitized }));
       io.to(code).emit("turn-changed", { currentPlayerIndex: game.currentPlayerIndex });
     } catch (error) {
@@ -376,6 +380,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
 
       await saveGame(game);
 
+      console.log(`[${new Date().toISOString()}] Game ${code} over — winner: "${player.name}"`);
       broadcastToRoom(io, game, "game-over", (sanitized) => ({
         winnerId: player.id,
         gameState: sanitized,
@@ -591,6 +596,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
 
       await saveGame(game);
 
+      console.log(`[${new Date().toISOString()}] "${player.name}" disconnected from game ${gameCode}`);
       for (const p of game.players.filter((p) => p.socketId !== socket.id)) {
         io.to(p.socketId).emit("player-disconnected", {
           playerId: player.id,
